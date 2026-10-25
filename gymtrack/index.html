@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GymTrack">
+<title>GymTrack</title>
+<style>
+:root{--bg:#0f1115;--card:#1a1d24;--card2:#242832;--tx:#f1f3f7;--mu:#8b92a3;--ac:#4ade80;--ac2:#22c55e;--wr:#fbbf24;--dg:#f87171;--bl:#60a5fa;--r:14px}
+@media (prefers-color-scheme:light){:root{--bg:#f4f5f8;--card:#fff;--card2:#eceef3;--tx:#15171c;--mu:#667085;--ac:#16a34a;--ac2:#15803d;--bl:#2563eb}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Arial,sans-serif;padding-bottom:140px}
+main{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 14px}h2{font-size:17px;margin:18px 0 8px}
+.card{background:var(--card);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card.warm{border-inline-start:4px solid var(--wr)}.card.main{border-inline-start:4px solid var(--ac)}
+.row{display:flex;gap:8px;align-items:center}.sp{justify-content:space-between}.grow{flex:1}
+.mu{color:var(--mu);font-size:13px}
+button{font:inherit;border:0;border-radius:10px;padding:10px 14px;background:var(--card2);color:var(--tx);cursor:pointer}
+button.pri{background:var(--ac);color:#06210f;font-weight:700}
+button.dg{color:var(--dg)}button.sm{padding:6px 10px;font-size:14px}
+input,select{font:inherit;background:var(--card2);color:var(--tx);border:1px solid transparent;border-radius:10px;padding:9px;width:100%;min-width:0}
+input:focus,select:focus{outline:2px solid var(--ac)}
+.set{display:grid;grid-template-columns:28px 1fr 1fr 1fr 44px;gap:6px;align-items:center;margin:6px 0}
+.set .n{color:var(--mu);text-align:center}
+.set .prev{color:var(--mu);font-size:12px;text-align:center}
+.chk{width:44px;height:40px;padding:0;font-size:20px}
+.set.done .chk{background:var(--ac);color:#06210f}
+.set.done input{opacity:.6}
+.pr{color:var(--wr);font-weight:700;font-size:12px}
+.tip{font-size:13px;color:var(--mu);background:var(--card2);border-radius:10px;padding:8px 10px;margin:8px 0}
+.fb{font-size:14px;border-radius:10px;padding:8px 10px;margin:8px 0;font-weight:600}
+.fb.good{background:rgba(74,222,128,.15);color:var(--ac)}
+.fb.bad{background:rgba(248,113,113,.15);color:var(--dg)}
+.fb.neu{background:rgba(96,165,250,.15);color:var(--bl)}
+.banner{border-radius:var(--r);padding:12px 14px;margin-bottom:12px;background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4)}
+.banner b{color:var(--wr)}
+.bar{height:8px;border-radius:99px;background:var(--card2);overflow:hidden;margin:6px 0 12px}.bar>i{display:block;height:100%;background:var(--ac);transition:width .3s}
+nav{position:fixed;bottom:0;inset-inline:0;background:var(--card);display:flex;padding:6px 6px calc(6px + env(safe-area-inset-bottom));border-top:1px solid var(--card2);z-index:5}
+nav button{flex:1;background:none;font-size:12px;color:var(--mu);display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button b{font-size:20px;font-weight:400}nav button.on{color:var(--ac)}
+#rest{position:fixed;inset-inline:12px;bottom:calc(68px + env(safe-area-inset-bottom));background:var(--ac);color:#06210f;border-radius:var(--r);padding:10px 14px;display:none;align-items:center;gap:10px;z-index:6;font-weight:700}
+#rest.show{display:flex}
+#toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--wr);color:#222;padding:10px 16px;border-radius:99px;font-weight:700;z-index:9;display:none;max-width:92vw;text-align:center}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--card);border-radius:var(--r);padding:12px;text-align:center}
+.stat b{display:block;font-size:24px}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center}
+.day{background:var(--card2);border-radius:10px;padding:8px 0;font-size:13px}
+.day.on{background:var(--ac);color:#06210f;font-weight:700}.day.today{outline:2px solid var(--mu)}
+.day.ev{background:rgba(251,191,36,.3)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{padding:6px 10px;border-radius:99px;background:var(--card2);font-size:14px}
+.chip.on{background:var(--ac);color:#06210f}
+svg{width:100%;height:auto;display:block}
+.empty{text-align:center;color:var(--mu);padding:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<div id="rest"><span>⏱ מנוחה</span><span id="rt" style="font-size:20px">0:00</span><span class="grow"></span><button class="sm" onclick="addRest(15)">+15</button><button class="sm" onclick="stopRest()">דלג</button></div>
+<div id="toast"></div>
+<nav id="nav"></nav>
+<script>
+/* קטלוג תרגילים. כל פריט: [שם, סוג (s=כוח, t=זמן בשניות, c=קרדיו, w=חימום), טיפ]. סוג ברירת מחדל: כוח */
+const CATALOG=[
+{g:'חזה',items:[
+ ['לחיצת חזה',,'שכמות צמודות לספסל, מרפקים בזווית ~45°. במכונה: כוון את המושב כך שהידיות בגובה אמצע החזה.'],
+ ['לחיצת חזה בשיפוע עליון',,'שיפוע 30°. מדגיש את החזה העליון. אל תרים את הכתפיים לאוזניים.'],
+ ['לחיצת חזה בשיפוע תחתון',,'שיפוע שלילי קל. מתאים לחזה התחתון, השתמש בספוטר.'],
+ ['לחיצת חזה בדמבלים',,'טווח תנועה גדול יותר מהמוט. רד לאט עד מתיחה בחזה.'],
+ ['לחיצת חזה במכונה',,'כוון את המושב כך שהידיות בגובה אמצע החזה. שכמות צמודות לגב.'],
+ ['מקבילים (דיפס)',,'הטה את הגוף קדימה לדגש על חזה. רד עד מרפקים ב-90°.'],
+ ['פרפר במכונה (Pec Deck)',,'מרפקים בגובה הכתפיים, סגור לאט וחזק בנקודה העליונה.'],
+ ['פרפר בדמבלים',,'מרפקים מעט כפופים לאורך כל התנועה. אל תרד נמוך מדי.'],
+ ['מעבר בכבל (Cable Crossover)',,'צעד קדימה לייצוב, הנח את הידיים אחת מול השנייה וצבוט את החזה.'],
+ ['שכיבות סמיכה',,'גוף ישר כמו קרש, חזה כמעט נוגע ברצפה. מרפקים ~45°.'],
+ ['פולאובר בדמבל',,'שכיבה על הספסל, הורד את הדמבל מעל הראש עם מרפקים כמעט ישרים.']
+]},
+{g:'גב',items:[
+ ['מתח',,'אחיזה מעט רחבה מהכתפיים, משוך עם הגב ולא עם הזרועות. במכונת עזר: יותר משקל = יותר עזרה.'],
+ ['מתח באחיזה צרה (Chin-up)',,'אחיזה הפוכה וצרה. מעורב יותר דו-ראשי, משוך עד סנטר מעל המוט.'],
+ ['פולי עליון (Lat Pulldown)',,'התיישב עם ירכיים נעולות מתחת לכרית, משוך את המוט לעצמות הבריח והישען מעט אחורה.'],
+ ['חתירה בכבל בישיבה',,'גב ישר, משוך אל הטבור וצבוט שכמות. אל תתנדנד עם הגוף.'],
+ ['חתירה במוט',,'גוף בזווית ~45°, משוך לכיוון הטבור וצבוט שכמות בסוף התנועה.'],
+ ['חתירה בדמבל',,'ידיים ורגל על הספסל, משוך את המרפק לכיוון הירך.'],
+ ['חתירה במכונת כוח',,'חזה צמוד לכרית, משוך עם הגב ובלי להתכופף.'],
+ ['חתירת T-Bar',,'גב ישר, חזה למעלה, משוך אל הבטן העליונה.'],
+ ['דדליפט',,'גב ישר, המוט צמוד לרגליים, דחוף דרך העקבים. אל תעגל את הגב.'],
+ ['הרמות גב (היפראקסטנשן)',,'עצור כשהגוף בקו ישר. אל תקשת יתר על המידה את הגב התחתון.'],
+ ['שרוגס',,'הרם כתפיים ישר למעלה, ללא סיבובים. החזק שנייה למעלה.'],
+ ['פייס פול (Face Pull)',,'משוך את החבל אל מול הפנים, מרפקים גבוהים. מצוין לבריאות הכתף.'],
+ ['פולאובר בכבל',,'זרועות כמעט ישרות, משוך מלמעלה למטה עם הגב.']
+]},
+{g:'כתפיים',items:[
+ ['לחיצת כתפיים',,'ליבה מהודקת ובלי קשת בגב התחתון. במכונה: כוון מושב כך שהידיות בגובה הכתפיים.'],
+ ['לחיצת כתפיים בדמבלים',,'מרפקים מעט לפנים, לחץ עד סוף הטווח בלי לנעול בכוח.'],
+ ['לחיצת כתפיים במכונה',,'גב צמוד לכרית וכוון את גובה המושב כך שהידיות בגובה הכתפיים.'],
+ ['לחיצת ארנולד',,'התחל באחיזה הפוכה וסובב בזמן הלחיצה. משקל קל יותר מלחיצה רגילה.'],
+ ['הרמות צד',,'מרפקים מעט כפופים, הרם עד גובה הכתף בלבד. בלי תנופה.'],
+ ['הרמות קדמיות',,'הרם עד גובה הכתף, שליטה בירידה.'],
+ ['הרמות אחוריות',,'התכופף קדימה והרם הצידה, צבוט שכמות. משקל קל.'],
+ ['פרפר הפוך במכונה',,'חזה צמוד לכרית, משוך אחורה עם מרפקים ישרים יחסית.'],
+ ['חתירה זקופה',,'משוך את המוט עד גובה החזה, מרפקים מעל הידיים.']
+]},
+{g:'ידיים',items:[
+ ['סלסול דו-ראשי במוט',,'מרפקים צמודים לגוף, בלי להתנדנד. רד לאט.'],
+ ['סלסול דו-ראשי בדמבלים',,'סובב את כף היד תוך כדי הרמה (סופינציה).'],
+ ['סלסול פטיש',,'אחיזה ניטרלית. מתאים גם לאמות ולשריר הברכיאלי.'],
+ ['סלסול בספסל סקוט',,'הזרוע על הכרית, אל תנעל את המרפק למטה.'],
+ ['סלסול בכבל',,'מתח קבוע לאורך כל התנועה. מרפקים צמודים.'],
+ ['פשיטת מרפקים בכבל (Pushdown)',,'מרפקים צמודים לגוף, פשוט עד הסוף וצבוט את התלת.'],
+ ['פשיטת מרפקים מעל הראש',,'מרפקים פונים קדימה וצמודים לראש. יציב ואיטי.'],
+ ['לחיצה צרה',,'אחיזה כרוחב הכתפיים, מרפקים קרובים לגוף.'],
+ ['מקבילים לתלת ראשי',,'גוף זקוף, מרפקים אחורה וצמודים.'],
+ ['לחיצה צרפתית (French Press)',,'מרפקים קבועים, הורד את המוט לכיוון המצח.'],
+ ['סלסול שורש כף היד',,'משקל קל, טווח מלא, מתאים לחיזוק האמות.']
+]},
+{g:'רגליים',items:[
+ ['סקוואט',,'רגליים ברוחב כתפיים, ברכיים בכיוון הבהונות, ירידה עד מקביל. במכונת סמית׳ הרחק מעט את הרגליים קדימה.'],
+ ['סקוואט קדמי',,'מרפקים גבוהים, גו זקוף. מדגיש את הארבע-ראשי.'],
+ ['סקוואט גביע (Goblet)',,'החזק דמבל או קטלבל בחזה. מצוין לשיפור טכניקה.'],
+ ['סקוואט בסמית׳',,'הרגליים מעט לפני המוט, עקבים על הרצפה.'],
+ ['סקוואט בולגרי',,'רגל אחורית על הספסל, רד ישר למטה, ברך קדמית יציבה.'],
+ ['האק סקוואט',,'גב צמוד לכרית, רגליים נמוכות לדגש על הארבע-ראשי.'],
+ ['לחיצת רגליים',,'גב תחתון צמוד, אל תנעל את הברכיים למעלה. רגליים גבוהות = יותר ישבן.'],
+ ['פשיטת ברכיים (Leg Extension)',,'כוון את הכרית על הקרסול. עצור שנייה למעלה.'],
+ ['כיפוף ברכיים שכיבה (Leg Curl)',,'ירכיים צמודות לספסל, משוך עד סוף הטווח.'],
+ ['כיפוף ברכיים ישיבה',,'כוון את הכרית מעל העקב, שליטה בירידה.'],
+ ['מכרעים',,'צעד קדימה, ברך אחורית כמעט נוגעת ברצפה. גו זקוף.'],
+ ['הליכת מכרעים',,'צעדים ארוכים, ברך קדמית מעל הקרסול.'],
+ ['דדליפט רומני',,'ברכיים מעט כפופות, דחוף את האגן אחורה, מוט צמוד לרגליים.'],
+ ['עליית מדרגה (Step-up)',,'דרוך עם כל כף הרגל על הספסל ועלה דרך העקב.'],
+ ['עליות עקבים בעמידה',,'טווח מלא, עצור שנייה למעלה ולמטה.'],
+ ['עליות עקבים בישיבה',,'מדגיש את שריר הסוליאוס, כוון את הכרית על הברכיים.'],
+ ['מכונת מתח ירכיים (Adductor)',,'כוון את הרוחב ההתחלתי לנוחות, בלי תנופה.'],
+ ['מכונת הרחקת ירכיים (Abductor)',,'גב צמוד לכרית, פתח לאט ושלוט בחזרה.']
+]},
+{g:'ישבן',items:[
+ ['היפ תראסט',,'גב עליון על הספסל, דחוף דרך העקבים, צבוט ישבן למעלה.'],
+ ['בעיטת ישבן בכבל',,'גוף יציב, הרם את הרגל אחורה ולא את הגב.'],
+ ['בעיטת ישבן במכונה',,'ירך צמודה לכרית, צבוט בסוף.'],
+ ['גוד מורנינג (Good Morning)',,'גב ישר, התכופף מהמותניים, משקל קל.'],
+ ['גשר ישבן עם משקל',,'כפות רגליים קרוב לישבן, החזק למעלה שנייה.']
+]},
+{g:'בטן וליבה',items:[
+ ['פלנק','t','גוף ישר, ישבן לא עולה ולא יורד. הזן משך זמן בשניות.'],
+ ['פלנק צידי','t','האגן למעלה ובקו עם הכתפיים והרגליים. הזן משך זמן בשניות.'],
+ ['כפיפות בטן',,'עלייה איטית, בלי למשוך את הצוואר.'],
+ ['קראנצ׳ בכבל',,'ירידה עם הבטן ולא עם הידיים, עגל את הגב.'],
+ ['הרמות רגליים בתלייה',,'הימנע מתנופה, הרם עם הבטן התחתונה.'],
+ ['הרמות רגליים בשכיבה',,'גב תחתון צמוד לרצפה לאורך כל התנועה.'],
+ ['סיבוב רוסי',,'רגליים מורמות, סובב מהחזה ולא רק מהידיים.'],
+ ['גלגל בטן',,'ליבה מהודקת, אל תפיל את הגב התחתון.'],
+ ['דד באג (Dead Bug)',,'גב תחתון צמוד לרצפה, זרוע ורגל נגדית נעות לאט.'],
+ ['פאלוף פרס (Pallof Press)',,'עמוד יציב, לחץ קדימה והתנגד לסיבוב הגוף.']
+]},
+{g:'קרדיו',items:[
+ ['ריצה','c','התחל בקצב שיחה. בהליכון הצב שיפוע 1% כדי לדמות ריצה בחוץ.'],
+ ['הליכה מהירה','c','צעדים ארוכים והנעת ידיים. נוח לעומסים נמוכים.'],
+ ['הליכה בשיפוע','c','שיפוע 8–12% בקצב 5–6 קמ"ש. אל תתלה על המעקה.'],
+ ['אופניים','c','גובה אוכף נכון: ברך כמעט ישרה בדוושה התחתונה.'],
+ ['אופני ספינינג','c','כוון את הכידון והאוכף, שמור על התנגדות קבועה.'],
+ ['אליפטיקל','c','עמוד זקוף, דחוף ומשוך עם הידיים לפעילות מלאה.'],
+ ['חתירה במכונה','c','התחל ברגליים, אחר כך גו, ואז ידיים. החזרה בסדר הפוך.'],
+ ['מטפס מדרגות','c','אל תישען על המעקה, צעדים מלאים.'],
+ ['מכונת סקי (SkiErg)','c','כופף מהמותניים, משוך עם הגב והליבה.'],
+ ['אופני אוויר','c','יד ורגל יחד, מתאים ל-HIIT.'],
+ ['קפיצה בחבל','c','קפיצות קטנות על קדמת כף הרגל, מרפקים צמודים.'],
+ ['שחייה','c','רשום זמן ומרחק לפי ברכה.'],
+ ['HIIT (אינטרוולים)','c','לדוגמה 30 שניות מאמץ ו-30 שניות מנוחה. רשום את משך הסט כולו.']
+]},
+{g:'פונקציונלי',items:[
+ ['נדנוד קטלבל (Swing)',,'התנועה מהירכיים ולא מהידיים, גב ישר.'],
+ ['בורפי',,'שמור על ליבה מהודקת בעת הירידה לרצפה.'],
+ ['הליכת איכר (Farmer\'s Walk)',,'כתפיים אחורה, גו זקוף, צעדים יציבים.'],
+ ['קלין ופרס',,'תנועה מפוצצת מהירכיים, משקל קל ללמידה.'],
+ ['קפיצה לארגז (Box Jump)',,'נחיתה רכה, עמוד זקוף למעלה לפני ירידה.'],
+ ['דחיפת מזחלת (Sled Push)',,'גוף נוטה קדימה, צעדים קצרים ומהירים.'],
+ ['חבלי קרב (Battle Ropes)',,'ברכיים מעט כפופות, תנועות גדולות ויציבות.'],
+ ['חתירת TRX',,'גוף ישר, כל חתירה אל החזה.'],
+ ['זריקת כדור רפואי (Slam)',,'הרם גבוה והורד בכוח, תנועה מלאה.'],
+ ['קימה טורקית (Turkish Get-up)',,'משקל קל מאוד, עיניים על המשקולת.']
+]},
+{g:'חימום וניידות',items:[
+ ['ריצה קלה','w','5 דקות בקצב נוח, עד שהגוף מתחמם ומתחילה זיעה קלה.'],
+ ['הליכון בקצב קל','w','5 דקות הליכה מהירה או ריצה קלה לחימום כללי.'],
+ ['אופניים קלים','w','5 דקות בהתנגדות נמוכה, מתאים לרגליים.'],
+ ['חתירה קלה','w','5 דקות בקצב נוח, מחמם גב וזרועות.'],
+ ['קפיצות פיסוק (Jumping Jacks)','w','30–60 שניות להעלאת דופק.'],
+ ['מתיחות דינמיות','w','תנועות מעגליות ומתנדנדות, לא החזקות ארוכות. מתיחה סטטית עדיף לסוף האימון.'],
+ ['סיבובי כתפיים','w','עשה לפני תרגילי חזה וכתפיים. 10 סיבובים לכל כיוון עם גומייה או בלי.'],
+ ['משיכת גומייה (Band Pull-Apart)','w','2×15 לפני חזה, גב וכתפיים. מפעיל את השכמות.'],
+ ['גשר גלוטאוס','w','מפעיל את הישבן לפני סקוואט ודדליפט. החזק שנייה למעלה.'],
+ ['סיבובי אגן וירכיים','w','עיגולים גדולים ואיטיים לפני רגליים.'],
+ ['נדנוד רגליים','w','10 לכל צד קדימה והצידה, מתאים לפני רגליים.'],
+ ['מכרעים דינמיים','w','צעדים איטיים בלי משקל, 8 לכל רגל.'],
+ ['חתול-גמל','w','על ארבע, גב מקושת ומורד לסירוגין. 10 חזרות.'],
+ ['אינצ׳וורם (Inchworm)','w','לך עם הידיים קדימה לפלנק וחזור, מתיחה ושחרור.'],
+ ['ציפור-כלב (Bird Dog)','w','זרוע ורגל נגדית, גב ישר. מפעיל ליבה.'],
+ ['סיבוב חזה (Thoracic Rotation)','w','פתיחת עמוד השדרה החזי לפני לחיצות וחתירות.'],
+ ['מתיחת חזה בפינה','w','30 שניות לכל צד, הכתף לא עולה.'],
+ ['רולר שחרור (Foam Roller)','w','1–2 דקות לאזור, בלי לגלגל על המפרק עצמו.']
+]}
+];
+const CAT_ORDER=[...CATALOG.map(c=>c.g),'אחר'];
+
+</script>
+<script>
+const DAYS=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+const KEY='gymtrack.v1';
+const uid=()=>Math.random().toString(36).slice(2,9);
+let S=load();
+let tab='today', histEx=null, openPlan=null;
+
+function load(){
+  let s=null;try{s=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+  return normalize(s);
+}
+function normalize(s){
+  if(!s||!s.exercises)s={exercises:[],plans:[],workouts:[],current:null,settings:{rest:90,goal:3}};
+  // השלמת תרגילי ברירת מחדל וטיפים
+  CATALOG.forEach(({g,items})=>items.forEach(([name,type,tip])=>{
+    type=type||'s';
+    const e=s.exercises.find(x=>x.name===name);
+    if(!e)s.exercises.push({id:uid(),name,type,tip,grp:g});
+    else{
+      if(!e.tip)e.tip=tip;if(!e.grp)e.grp=g;
+      // מיגרציה: פלנק היה מוגדר ככוח (ק"ג וחזרות), עכשיו תרגיל זמן
+      if(type==='t'&&e.type==='s'){e.type='t';e.tip=tip}
+    }
+  }));
+  s.exercises.forEach(e=>{if(!e.grp)e.grp='אחר'});
+  // מיגרציה: פריטי תוכנית -> {ex,ph}
+  s.plans.forEach(p=>p.items=p.items.map(i=>typeof i==='string'?{ex:i,ph:'m'}:i));
+  s.cal=s.cal||[];
+  return s;
+}
+/* ---------- אחסון: localStorage + עותק ב-IndexedDB, ובקשת אחסון קבוע ---------- */
+const idb=(mode,fn)=>new Promise((res,rej)=>{
+  if(!window.indexedDB)return rej(new Error('no idb'));
+  const r=indexedDB.open('gymtrack',1);
+  r.onupgradeneeded=()=>r.result.createObjectStore('kv');
+  r.onerror=()=>rej(r.error);
+  r.onsuccess=()=>{const tx=r.result.transaction('kv',mode),q=fn(tx.objectStore('kv'));tx.oncomplete=()=>res(q&&q.result);tx.onerror=()=>rej(tx.error)};
+});
+function save(){
+  S.savedAt=Date.now();
+  const json=JSON.stringify(S);
+  let ok=false;try{localStorage.setItem(KEY,json);ok=true}catch(e){}
+  idb('readwrite',st=>st.put(json,KEY)).catch(()=>{if(!ok)toast('שמירה נכשלה')});
+}
+/* אם ה-localStorage נמחק (למשל ניקוי של Safari) אבל העותק ב-IndexedDB שרד, משחזרים ממנו */
+async function restoreFromIDB(){
+  try{
+    const j=await idb('readonly',st=>st.get(KEY));if(!j)return;
+    const d=JSON.parse(j);
+    if(d&&d.exercises&&(d.savedAt||0)>(S.savedAt||0)){S=normalize(d);save();render();if(S.current&&S.current.restEnd>Date.now())resumeRest()}
+  }catch(e){}
+}
+async function askPersist(){
+  try{if(navigator.storage&&navigator.storage.persist&&!(await navigator.storage.persisted()))S.settings.persisted=await navigator.storage.persist();else if(navigator.storage&&navigator.storage.persisted)S.settings.persisted=await navigator.storage.persisted()}catch(e){}
+}
+const needsBackup=()=>S.workouts.length>=3&&Date.now()-(S.settings.lastBackup||S.workouts[0].start)>14*864e5;
+const ex=id=>S.exercises.find(e=>e.id===id)||{name:'?',type:'s'};
+/* רשימת בחירה מקובצת לפי קבוצת שרירים. first = קבוצה שתופיע ראשונה */
+function groupedOpts(filter,first){
+  const order=first?[first,...CAT_ORDER.filter(g=>g!==first)]:CAT_ORDER;
+  return order.map(g=>{
+    const l=S.exercises.filter(e=>(e.grp||'אחר')===g&&filter(e));
+    return l.length?`<optgroup label="${g}">${l.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')}</optgroup>`:'';
+  }).join('')+`<option value="__new">✏️ אחר: הזנה ידנית…</option>`;
+}
+/* הזנה ידנית של תרגיל / סוג אימון */
+function quickAdd(phase){
+  const name=(prompt('שם התרגיל או סוג האימון:')||'').trim();if(!name)return null;
+  const d=phase==='w'?'3':'1';
+  const t=(prompt('סוג: 1 = כוח (משקל וחזרות), 2 = קרדיו (זמן ומרחק), 3 = חימום (זמן), 4 = החזקה בזמן (שניות, למשל פלנק)',d)||d).trim();
+  const tip=(prompt('טיפ או הנחיות למכשיר (אפשר לדלג):','')||'').trim();
+  const e={id:uid(),name,type:{'1':'s','2':'c','3':'w','4':'t'}[t]||'s',tip,grp:'אחר'};
+  S.exercises.push(e);save();return e.id;
+}
+const e1rm=(w,r)=>w*(1+r/30);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtDate=t=>new Date(t).toLocaleDateString('he-IL',{day:'numeric',month:'short'});
+const startOfWeek=t=>{const d=new Date(t);d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay());return d.getTime()};
+const ymd=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const addDays=(str,n)=>{const d=new Date(str+'T12:00:00');d.setDate(d.getDate()+n);return ymd(d)};
+const ph=e=>e.ph||'m';
+
+/* ---------- history helpers (חימום לא נספר בשיאים ובנפח) ---------- */
+function lastSets(exId,phase='m'){
+  for(let i=S.workouts.length-1;i>=0;i--){
+    const en=S.workouts[i].entries.find(e=>e.exId===exId&&ph(e)===phase);
+    if(en){const d=en.sets.filter(s=>s.done);if(d.length)return d}
+  }return null;
+}
+/* ערך להשוואה בין סטים: 1RM משוער, חזרות (משקל גוף, 0 ק"ג) או שניות (תרגיל זמן) */
+const isBW=s=>!(+s.w>0);
+const setScore=(e,s)=>e.type==='t'?(+s.sec||0):isBW(s)?(+s.r||0):e1rm(+s.w,+s.r);
+const fmtSet=(e,s)=>e.type==='t'?`${s.sec} שנ׳`:isBW(s)?`${s.r} חזרות`:`${s.w}×${s.r}`;
+function bestScore(exId,bw){
+  const e=ex(exId);let b=0;
+  S.workouts.forEach(w=>w.entries.forEach(en=>{if(en.exId===exId&&ph(en)==='m')en.sets.forEach(s=>{if(s.done&&(e.type==='t'||isBW(s)===bw))b=Math.max(b,setScore(e,s))})}));
+  return b;
+}
+/* אחוז שינוי מול הפעם הקודמת. משקל גוף מושווה לפי חזרות, תרגיל זמן לפי שניות */
+function progressPct(e,s,p){
+  if(e.type==='t')return p.sec>0?(s.sec-p.sec)/p.sec*100:0;
+  const sw=+s.w||0,pw=+p.w||0;
+  if(sw>0&&pw>0)return (e1rm(sw,s.r)-e1rm(pw,p.r))/e1rm(pw,p.r)*100;
+  if(sw===pw)return p.r>0?(s.r-p.r)/p.r*100:0;
+  // עבר ממשקל גוף לתוספת משקל (או להפך): לפי כיוון המשקל, כל עוד החזרות לא ירדו
+  return sw>pw?(s.r>=p.r?5:0):(s.r>p.r?0:-5);
+}
+const volume=w=>w.entries.reduce((a,e)=>ph(e)==='m'?a+e.sets.reduce((b,s)=>b+(s.w&&s.r?s.w*s.r:0),0):a,0);
+
+/* ---------- יומן: חגים וחופשות ---------- */
+const eventsOn=d=>S.cal.filter(e=>e.start<=d&&d<=e.end);
+function blockedDays(wk){let n=0;for(let i=0;i<7;i++){const d=new Date(wk);d.setDate(d.getDate()+i);if(eventsOn(ymd(d)).length)n++}return n}
+const weekGoal=wk=>Math.round(S.settings.goal*(7-blockedDays(wk))/7);
+/* זיהוי לפי מילים שלמות: "חג" לא יתפוס "חגיגת יום הולדת", ו-"trip" לא יתפוס "strip".
+   W(...) = מילה עברית שלמה, עם תחילית אופציונלית (ה/ב/ל/ו/מ/ש/כ) */
+const W=src=>new RegExp('(^|[^א-ת])[הבלומשכ]?(?:'+src+')(?![א-ת])','i');
+const HOLIDAY=[W('חג|ערב חג|חול המועד|פסח|סוכות|שבועות|ראש השנה|יום כיפור|יום הכיפורים|כיפור|חנוכה|פורים|יום העצמאות|שמחת תורה|שמיני עצרת'),/\b(holiday|christmas|easter|passover|rosh hashana\w*|yom kippur|sukkot|shavuot|hanukkah|chanukah|purim|independence day)\b/i];
+const VACATION=[W('חופש|חופשה|חופשת|טיסה|טיסת|נופש|מילואים|חו"ל|חו״ל'),/\b(vacation|vacay|annual leave|day off|days off|pto|ooo|out of office|flight|trip)\b/i];
+function classify(t){
+  if(HOLIDAY.some(r=>r.test(t)))return 'holiday';
+  if(VACATION.some(r=>r.test(t)))return 'vacation';
+  return null;
+}
+function parseICS(t){
+  t=t.replace(/\r?\n[ \t]/g,'');const out=[];
+  t.split('BEGIN:VEVENT').slice(1).forEach(b=>{
+    const g=k=>{const m=b.match(new RegExp('^'+k+'[^:\\n]*:(.*)$','m'));return m?m[1].trim():''};
+    const s=g('DTSTART'),e=g('DTEND'),title=g('SUMMARY').replace(/\\,/g,',').replace(/\\n/g,' ');
+    if(!s||!title)return;
+    const kind=classify(title);if(!kind)return;
+    const f=x=>x.slice(0,4)+'-'+x.slice(4,6)+'-'+x.slice(6,8);
+    const start=f(s);let end=e?f(e):start;
+    if(!s.includes('T')&&e)end=addDays(end,-1);
+    if(end<start)end=start;
+    out.push({id:uid(),title,start,end,kind});
+  });
+  return out;
+}
+function importICS(f){
+  if(!f)return;
+  f.text().then(t=>{
+    const today=ymd(Date.now()),lim=addDays(today,400);
+    const ev=parseICS(t).filter(e=>e.end>=addDays(today,-30)&&e.start<=lim);
+    let added=0;
+    ev.forEach(e=>{if(!S.cal.some(c=>c.title===e.title&&c.start===e.start)){S.cal.push(e);added++}});
+    save();render();toast(added?`נוספו ${added} אירועים מהיומן`:'לא נמצאו חגים או חופשות חדשים בקובץ');
+  }).catch(()=>toast('קובץ לא תקין'));
+}
+/* ---------- סנכרון עם Google Calendar (קריאה בלבד) ---------- */
+function loadGIS(){
+  return new Promise((res,rej)=>{
+    if(window.google&&google.accounts&&google.accounts.oauth2)return res();
+    const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.onload=()=>res();s.onerror=()=>rej(new Error('gis'));document.head.appendChild(s);
+  });
+}
+function gcalToEvents(items,calName){
+  const out=[];
+  (items||[]).forEach(it=>{
+    if(!it.start||!it.summary||it.status==='cancelled')return;
+    const kind=it.eventType==='outOfOffice'?'vacation':classify(it.summary);if(!kind)return;
+    const start=it.start.date||ymd(it.start.dateTime);
+    let end=it.end?(it.end.date?addDays(it.end.date,-1):ymd(it.end.dateTime)):start;
+    if(end<start)end=start;
+    out.push({id:uid(),title:it.summary,start,end,kind,src:'google'});
+  });
+  return out;
+}
+async function gFetch(token,url){
+  const r=await fetch(url,{headers:{Authorization:'Bearer '+token}});
+  if(!r.ok)throw new Error('http '+r.status);
+  return r.json();
+}
+async function gSyncWithToken(token){
+  const tmin=new Date(Date.now()-7*864e5).toISOString(),tmax=new Date(Date.now()+120*864e5).toISOString();
+  const cals=(await gFetch(token,'https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader')).items||[];
+  let found=[];
+  for(const c of cals){
+    if(c.selected===false)continue;
+    const q=`?singleEvents=true&orderBy=startTime&maxResults=250&timeMin=${encodeURIComponent(tmin)}&timeMax=${encodeURIComponent(tmax)}`;
+    try{found=found.concat(gcalToEvents((await gFetch(token,`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(c.id)}/events${q}`)).items,c.summary))}catch(e){}
+  }
+  const seen=new Set();
+  found=found.filter(e=>{const k=e.title+e.start;if(seen.has(k))return false;seen.add(k);return true});
+  S.cal=S.cal.filter(e=>e.src!=='google').concat(found.filter(e=>!S.cal.some(m=>m.title===e.title&&m.start===e.start)));
+  S.settings.lastSync=Date.now();save();render();
+  toast(`סונכרנו ${found.length} חגים וחופשות מ-${cals.length} יומנים`);
+}
+async function gSync(){
+  const id=(document.getElementById('gid')||{}).value||S.settings.gid;
+  if(!id)return toast('הדבק קודם Client ID של Google');
+  S.settings.gid=id.trim();save();
+  try{await loadGIS()}catch(e){return toast('אין חיבור לשרתי Google')}
+  const tc=google.accounts.oauth2.initTokenClient({
+    client_id:S.settings.gid,scope:'https://www.googleapis.com/auth/calendar.readonly',
+    callback:r=>{if(r.error)return toast('ההתחברות נכשלה: '+r.error);gSyncWithToken(r.access_token).catch(e=>toast('הסנכרון נכשל ('+e.message+')'))},
+    error_callback:()=>toast('החלון נסגר או נחסם')
+  });
+  tc.requestAccessToken({prompt:''});
+}
+function calAdd(){
+  const t=document.getElementById('ct').value.trim(),a=document.getElementById('ca').value,b=document.getElementById('cb').value||a;
+  if(!t||!a)return toast('מלא שם ותאריך התחלה');
+  S.cal.push({id:uid(),title:t,start:a,end:b<a?a:b,kind:document.getElementById('ck').value});save();render();
+}
+function calDel(id){S.cal=S.cal.filter(e=>e.id!==id);save();render()}
+const kindIcon=k=>k==='vacation'?'🏖️':'🕎';
+function calBanner(){
+  const today=ymd(Date.now()),limit=addDays(today,7);
+  const now=eventsOn(today),soon=S.cal.filter(e=>e.start>today&&e.start<=limit).sort((a,b)=>a.start<b.start?-1:1);
+  let h='';
+  now.forEach(e=>{
+    h+=`<div class="banner"><b>${kindIcon(e.kind)} היום: ${esc(e.title)}</b><div class="mu" style="margin:4px 0 8px">${e.kind==='vacation'?'בחופשה: מומלץ אימון משקל גוף או קרדיו בחוץ, 30 דקות.':'ביום חג: מומלץ אימון קצר (3 תרגילים, 2 סטים) או יום מנוחה פעיל.'}</div>
+    <button class="pri sm" onclick="startShort()">התחל אימון מקוצר</button></div>`;
+  });
+  if(soon.length)h+=`<div class="banner"><b>📅 בשבוע הקרוב</b>${soon.map(e=>{
+    const d=Math.round((new Date(e.start)-new Date(today))/864e5);
+    return `<div style="margin-top:6px">${kindIcon(e.kind)} ${esc(e.title)} <span class="mu">· ${d===1?'מחר':'בעוד '+d+' ימים'}</span><div class="mu">${e.kind==='vacation'?'שקול להקדים אימון כבד לפני הנסיעה, ולקחת איתך תוכנית משקל גוף.':'שקול להזיז אימון שיוצא על החג ליום סמוך. יעד השבוע מותאם אוטומטית.'}</div></div>`}).join('')}</div>`;
+  return h;
+}
+
+/* ---------- workout actions ---------- */
+function newEntry(exId,phase){
+  const e=ex(exId);phase=phase||(e.type==='w'?'w':'m');
+  const prev=lastSets(exId,phase),l=prev&&prev[prev.length-1];
+  let base;
+  if(e.type==='s')base={w:l?l.w:'',r:l?l.r:'',done:false};
+  else if(e.type==='t')base={sec:l?l.sec:'',done:false};
+  else if(e.type==='c')base={min:l?l.min:'',km:l?l.km:'',done:false};
+  else base={min:l?l.min:(phase==='w'?5:''),done:false};
+  return {exId,ph:phase,sets:[base]};
+}
+function startWorkout(planId,short,customName){
+  const p=S.plans.find(p=>p.id===planId);
+  let items=p?p.items:[];
+  if(short){const m=items.filter(i=>i.ph!=='w').slice(0,3);items=[...items.filter(i=>i.ph==='w'),...m]}
+  S.current={id:uid(),start:Date.now(),name:(p?p.name:((customName||'').trim()||'אימון חופשי'))+(short?' (מקוצר)':''),entries:items.map(i=>newEntry(i.ex,i.ph))};
+  save();render();
+}
+function startShort(){
+  const td=new Date().getDay(),p=S.plans.find(p=>p.days.includes(td))||S.plans[0];
+  startWorkout(p&&p.id,true);
+}
+function verdict(w){
+  const prev=[...S.workouts].reverse().find(x=>x.name===w.name);
+  const v=volume(w);
+  if(!prev||!volume(prev)||!v)return {t:'neu',m:'אימון ראשון מסוג זה, זה יהיה קו הבסיס להשוואה'};
+  const d=(v-volume(prev))/volume(prev)*100;
+  if(d>=2)return {t:'good',m:`💪 אימון חזק! נפח גבוה ב-${Math.round(d)}% מהאימון הקודם`};
+  if(d<=-10)return {t:'bad',m:`⚠️ נפח נמוך ב-${Math.round(-d)}% מהקודם. אם זה קורה כמה פעמים, בדוק שינה, אכילה ומנוחה`};
+  return {t:'neu',m:'✔ אימון יציב ברמה של הפעם הקודמת'};
+}
+function finishWorkout(){
+  const c=S.current;
+  c.entries.forEach(e=>e.sets=e.sets.filter(s=>s.done));
+  c.entries=c.entries.filter(e=>e.sets.length);
+  if(!c.entries.length){if(!confirm('אין סטים שהושלמו. לבטל את האימון?'))return;S.current=null;save();stopRest();render();return}
+  c.entries.forEach(e=>{delete e.fb});
+  delete c.restEnd;c.end=Date.now();c.verdict=verdict(c);
+  S.workouts.push(c);S.current=null;stopRest();save();tab='progress';render();toast(c.verdict.m);
+}
+function cancelWorkout(){if(confirm('לבטל את האימון הנוכחי?')){S.current=null;save();stopRest();render()}}
+function addExerciseToCurrent(id,phase){if(!id)return;if(id==='__new'){id=quickAdd(phase);if(!id){render();return}}S.current.entries.push(newEntry(id,phase));save();render()}
+function addSet(i){
+  const en=S.current.entries[i],l=en.sets[en.sets.length-1];
+  en.sets.push({...l,done:false,pr:undefined});save();render();
+}
+function delSet(i,j){S.current.entries[i].sets.splice(j,1);if(!S.current.entries[i].sets.length)S.current.entries.splice(i,1);save();render()}
+function setVal(i,j,k,v){S.current.entries[i].sets[j][k]=v===''?'':parseFloat(v);save()}
+
+/* חיווי חי אחרי כל סט */
+function feedback(en,j){
+  const s=en.sets[j],e=ex(en.exId),prev=lastSets(en.exId,'m'),p=prev&&prev[Math.min(j,prev.length-1)];
+  if(ph(en)==='w'||e.type==='w')return {t:'neu',m:'✔ חימום נרשם. ככל שהגוף חם יותר, כך בטוח יותר להעלות משקל'};
+  if(e.type==='c'){
+    if(!p||!(p.km>0)||!(s.km>0))return {t:'neu',m:'🆕 קו בסיס ראשון, בפעם הבאה נשווה קצב'};
+    const a=s.min/s.km,b=p.min/p.km,d=(b-a)/b*100;
+    if(d>=2)return {t:'good',m:`👏 קצב מהיר ב-${d.toFixed(0)}% מהפעם הקודמת (${a.toFixed(1)} דק׳/ק"מ)`};
+    if(d<=-5)return {t:'bad',m:`⚠️ קצב איטי ב-${(-d).toFixed(0)}% מהפעם הקודמת. אולי עייפות? אפשר לשמור על קצב נוח היום`};
+    return {t:'neu',m:'✔ קצב דומה לפעם הקודמת'};
+  }
+  let msg=null;
+  if(!p)msg={t:'neu',m:'🆕 קו בסיס ראשון לתרגיל, בפעם הבאה נשווה'};
+  else{
+    const d=progressPct(e,s,p),cur=fmtSet(e,s),was=fmtSet(e,p);
+    if(d>=1)msg={t:'good',m:`👏 התקדמות: ${cur} מול ${was} בפעם הקודמת (+${d.toFixed(0)}%)`};
+    else if(d<=-3)msg={t:'bad',m:`⚠️ ירידה של ${(-d).toFixed(0)}% מול ${was}. ${e.type==='t'||isBW(s)?'הארך מנוחה ל-2–3 דקות':'הארך מנוחה ל-2–3 דקות או הורד כ-5% מהמשקל'}`};
+    else msg={t:'neu',m:`✔ שמרת על הרמה של הפעם הקודמת (${was})`};
+  }
+  if(e.type==='t')return msg;
+  const first=en.sets[0];
+  if(j>0&&first.done&&s.r<=first.r-3&&msg.t!=='bad')msg={t:'bad',m:`⚠️ ירידה של ${first.r-s.r} חזרות מהסט הראשון, סימן לעייפות. הארך את המנוחה`};
+  else if(s.r>=12&&msg.t!=='bad')msg.m+=isBW(s)?' · 💡 12+ חזרות: אפשר להוסיף משקל (חגורה או אפוד) או לעבור לגרסה קשה יותר':` · 💡 12+ חזרות: הוסף ${s.w>=40?2.5:1} ק"ג בסט הבא`;
+  return msg;
+}
+function toggleSet(i,j){
+  const en=S.current.entries[i],s=en.sets[j],e=ex(en.exId);
+  s.done=!s.done;
+  if(s.done){
+    if(e.type==='s'&&(!(s.w>=0)||!s.r)){s.done=false;toast('מלא משקל (0 למשקל גוף) וחזרות');return}
+    if(e.type==='t'&&!(s.sec>0)){s.done=false;toast('מלא משך בשניות');return}
+    if((e.type==='c'||e.type==='w')&&!(s.min>0)){s.done=false;toast('מלא משך זמן');return}
+    unlockAudio();
+    en.fb=feedback(en,j);
+    if((e.type==='s'||e.type==='t')&&ph(en)==='m'){
+      const b=bestScore(en.exId,isBW(s)),cur=en.sets.filter((x,k)=>k!==j&&x.done&&x.pr).length;
+      if(b>0&&setScore(e,s)>b+0.01&&!cur){s.pr=true;en.fb={t:'good',m:'🏆 שיא אישי חדש בתרגיל!'};toast('🏆 שיא אישי חדש!')}
+    }
+    if(e.type==='s'||e.type==='t')startRest(ph(en)==='w'?45:S.settings.rest);
+  }else{delete s.pr;en.fb=null}
+  save();render();
+}
+
+/* ---------- rest timer ---------- */
+/* זמן הסיום נשמר באימון הנוכחי, כך שהטיימר ממשיך גם אחרי ריענון או חזרה לאפליקציה.
+   בזמן אימון המסך נשאר דולק (Wake Lock), כי דפדפן בטלפון מקפיא טיימרים כשהמסך כבוי.
+   בסוף המנוחה: צפצוף, רטט, והתראה אם האפליקציה ברקע */
+let restEnd=0,restIv=null,actx=null,wakeLock=null;
+function startRest(sec){
+  restEnd=Date.now()+sec*1000;if(S.current){S.current.restEnd=restEnd;save()}
+  askNotify();resumeRest();
+}
+function resumeRest(){
+  if(S.current&&S.current.restEnd)restEnd=S.current.restEnd;
+  document.getElementById('rest').classList.add('show');clearInterval(restIv);restIv=setInterval(tickRest,250);tickRest();
+}
+function addRest(s){restEnd+=s*1000;if(S.current){S.current.restEnd=restEnd;save()}tickRest()}
+function stopRest(){clearInterval(restIv);document.getElementById('rest').classList.remove('show');if(S.current&&S.current.restEnd){delete S.current.restEnd;save()}}
+function tickRest(){
+  const left=Math.ceil((restEnd-Date.now())/1000);
+  if(left<=0){restDone(left>-30);stopRest();return}
+  document.getElementById('rt').textContent=Math.floor(left/60)+':'+String(left%60).padStart(2,'0');
+}
+function restDone(fresh){
+  if(!fresh)return; // הטיימר נגמר מזמן (למשל בזמן שהאפליקציה הייתה סגורה): לא מצפצפים באיחור
+  try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+  beep();
+  if(document.hidden&&window.Notification&&Notification.permission==='granted'&&navigator.serviceWorker)
+    navigator.serviceWorker.ready.then(r=>r.showNotification('⏱ המנוחה נגמרה',{body:'הגיע הזמן לסט הבא 💪',tag:'rest',renotify:true,vibrate:[200,100,200]})).catch(()=>{});
+}
+/* Web Audio צריך "לשחרר" בלחיצה של המשתמש, לכן נקרא מ-toggleSet */
+function unlockAudio(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){}}
+function beep(){
+  if(!actx||S.settings.sound===false)return;
+  try{[0,.25,.5].forEach(t=>{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.25,actx.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+t+.18);o.connect(g).connect(actx.destination);o.start(actx.currentTime+t);o.stop(actx.currentTime+t+.2)})}catch(e){}
+}
+function askNotify(){try{if(window.Notification&&Notification.permission==='default'&&!S.settings.askedNotify){S.settings.askedNotify=true;Notification.requestPermission()}}catch(e){}}
+async function syncWakeLock(){
+  try{
+    if(S.current&&S.settings.wake!==false&&!document.hidden&&'wakeLock' in navigator){if(!wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null})}}
+    else if(wakeLock){await wakeLock.release();wakeLock=null}
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{syncWakeLock();if(!document.hidden&&S.current&&S.current.restEnd)resumeRest()});
+let tt;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',3200)}
+
+/* ---------- stats ---------- */
+function streak(){
+  const counts={};
+  S.workouts.forEach(w=>{const k=startOfWeek(w.start);counts[k]=(counts[k]||0)+1});
+  const first=S.workouts.length?startOfWeek(S.workouts[0].start):0;
+  let wk=startOfWeek(Date.now()),n=0;
+  const g0=weekGoal(wk);if(g0>0&&(counts[wk]||0)>=g0)n++;
+  wk-=7*864e5;
+  while(wk>=first-7*864e5){
+    const g=weekGoal(wk);
+    if(g>0){if((counts[wk]||0)>=g)n++;else break}
+    wk-=7*864e5;
+  }
+  return n;
+}
+
+/* ---------- views ---------- */
+function vToday(){
+  const wk=startOfWeek(Date.now()),days=new Set(S.workouts.filter(w=>w.start>=wk).map(w=>new Date(w.start).getDay()));
+  const td=new Date().getDay(),cnt=S.workouts.filter(w=>w.start>=wk).length,goal=weekGoal(wk);
+  const bk=!S.current&&needsBackup()?`<div class="banner"><b>💾 הגיע הזמן לגבות</b><div class="mu" style="margin:4px 0 8px">${S.settings.lastBackup?'הגיבוי האחרון היה לפני יותר משבועיים':'עוד לא גיבית את הנתונים'}. הנתונים שמורים רק במכשיר הזה, וגיבוי לוקח שנייה.</div><button class="pri sm" onclick="exportJSON()">גבה עכשיו</button> <button class="sm" onclick="S.settings.lastBackup=Date.now()-7*864e5;save();render()">הזכר לי בעוד שבוע</button></div>`:'';
+  let h=`<h1>היי 👋</h1>${bk}${S.current?'':calBanner()}<div class="stats">
+   <div class="stat"><b>${cnt}/${goal}</b><span class="mu">יעד השבוע${goal<S.settings.goal?' (מותאם ליומן)':''}</span></div>
+   <div class="stat"><b>🔥 ${streak()}</b><span class="mu">שבועות ברצף</span></div>
+   <div class="stat"><b>${S.workouts.length}</b><span class="mu">אימונים</span></div></div>
+   <div class="card" style="margin-top:12px"><div class="week">${DAYS.map((d,i)=>{const dt=new Date(wk);dt.setDate(dt.getDate()+i);return `<div class="day ${days.has(i)?'on':''} ${i===td?'today':''} ${eventsOn(ymd(dt)).length?'ev':''}">${d}</div>`}).join('')}</div></div>`;
+  if(S.current)return h+vActive();
+  const todays=S.plans.filter(p=>p.days.includes(td));
+  h+=`<h2>התחל אימון</h2>`;
+  const card=(p,pri,sub)=>`<div class="card row sp"><div><b>${esc(p.name)}</b><div class="mu">${sub}${p.items.filter(i=>i.ph==='w').length} חימום · ${p.items.filter(i=>i.ph!=='w').length} אימון</div></div><button class="${pri?'pri':''}" onclick="startWorkout('${p.id}')">התחל</button></div>`;
+  h+=todays.map(p=>card(p,1,'מתוכנן להיום · ')).join('')+S.plans.filter(p=>!p.days.includes(td)).map(p=>card(p,0,'')).join('');
+  h+=`<div class="card"><div class="mu" style="margin-bottom:6px">אימון חופשי: בחר או הקלד סוג אימון</div><div class="row"><input id="fwn" list="wtypes" placeholder="למשל: חזה וידיים, HIIT, גוף מלא"><button class="pri" onclick="startWorkout(null,false,document.getElementById('fwn').value)">התחל</button></div>
+  <datalist id="wtypes">${['חזה','גב','כתפיים','ידיים','רגליים','ישבן','בטן וליבה','גוף מלא','קרדיו','HIIT','דחיפה','משיכה','עליון','תחתון'].map(x=>`<option value="${x}">`).join('')}</datalist></div>`;
+  return h;
+}
+function entryCard(en,i){
+  const e=ex(en.exId),phase=ph(en),prev=lastSets(en.exId,phase),t=e.type;
+  let h=`<div class="card ${phase==='w'?'warm':'main'}"><div class="row sp"><b>${esc(e.name)}</b><span class="mu">${t==='s'?'כוח':t==='t'?'זמן':t==='c'?'קרדיו':'חימום'}</span></div>
+  ${e.tip?`<div class="tip">💡 ${esc(e.tip)}</div>`:''}
+  <div class="set mu" style="margin-bottom:0"><span></span>${t==='s'?'<span>ק"ג</span><span>חזרות</span><span>קודם</span>':t==='t'?'<span>שניות</span><span></span><span>קודם</span>':t==='c'?'<span>דקות</span><span>ק"מ</span><span>קצב</span>':'<span>דקות</span><span></span><span></span>'}<span></span></div>`;
+  en.sets.forEach((s,j)=>{
+    const p=prev&&prev[Math.min(j,prev.length-1)];
+    const side=t==='s'||t==='t'?(p?fmtSet(e,p):'—'):t==='c'?(s.min>0&&s.km>0?(s.min/s.km).toFixed(1)+'/ק"מ':'—'):'';
+    h+=`<div class="set ${s.done?'done':''}"><span class="n" ondblclick="delSet(${i},${j})" title="הקשה כפולה למחיקה">${j+1}</span>
+    ${t==='s'?`<input type="number" inputmode="decimal" step="0.5" value="${s.w}" onchange="setVal(${i},${j},'w',this.value)">
+    <input type="number" inputmode="numeric" value="${s.r}" onchange="setVal(${i},${j},'r',this.value)">`:
+    t==='t'?`<input type="number" inputmode="numeric" value="${s.sec}" onchange="setVal(${i},${j},'sec',this.value)"><span></span>`:
+    t==='c'?`<input type="number" inputmode="decimal" value="${s.min}" onchange="setVal(${i},${j},'min',this.value);render()">
+    <input type="number" inputmode="decimal" step="0.1" value="${s.km}" onchange="setVal(${i},${j},'km',this.value);render()">`:
+    `<input type="number" inputmode="decimal" value="${s.min}" onchange="setVal(${i},${j},'min',this.value)"><span></span>`}
+    <span class="prev">${side}${s.pr?'<div class="pr">🏆 שיא</div>':''}</span>
+    <button class="chk" onclick="toggleSet(${i},${j})">✔</button></div>`;
+  });
+  if(en.fb)h+=`<div class="fb ${en.fb.t}">${esc(en.fb.m)}</div>`;
+  return h+`<button class="sm" onclick="addSet(${i})">+ הוסף סט</button></div>`;
+}
+function vActive(){
+  const c=S.current,all=c.entries.flatMap(e=>e.sets),done=all.filter(s=>s.done).length,pct=all.length?Math.round(done/all.length*100):0;
+  const warmDone=c.entries.some(e=>ph(e)==='w'&&e.sets.some(s=>s.done)),mainStarted=c.entries.some(e=>ph(e)==='m'&&e.sets.some(s=>s.done));
+  let h=`<div class="row" style="margin:18px 0 6px"><input value="${esc(c.name)}" style="font-weight:700" onchange="S.current.name=this.value.trim()||'אימון';save()" title="סוג האימון (ניתן לעריכה)"><span class="mu" style="white-space:nowrap">${done}/${all.length} סטים</span></div><div class="bar"><i style="width:${pct}%"></i></div>`;
+  if(mainStarted&&!warmDone)h+=`<div class="banner"><b>🔥 עוד לא עשית חימום</b><div class="mu">חימום של 5–10 דקות מפחית סיכון לפציעה ומשפר ביצועים. אפשר להוסיף אותו מהרשימה למטה.</div></div>`;
+  h+=`<h2>🔥 חימום</h2>`;
+  const w=c.entries.map((en,i)=>ph(en)==='w'?entryCard(en,i):'').join('');
+  h+=w||`<div class="empty" style="padding:8px">אין תרגילי חימום</div>`;
+  h+=`<select onchange="addExerciseToCurrent(this.value,'w');this.value=''"><option value="">+ הוסף חימום…</option>${groupedOpts(()=>true,'חימום וניידות')}</select>`;
+  h+=`<h2>💪 אימון</h2>`+c.entries.map((en,i)=>ph(en)==='m'?entryCard(en,i):'').join('');
+  h+=`<select onchange="addExerciseToCurrent(this.value,'m');this.value=''"><option value="">+ הוסף תרגיל…</option>${groupedOpts(e=>e.type!=='w')}</select>
+  <div class="row" style="margin-top:12px"><button class="pri grow" style="padding:14px" onclick="finishWorkout()">סיים אימון</button><button class="dg" onclick="cancelWorkout()">בטל</button></div>`;
+  return h;
+}
+function vPlans(){
+  if(openPlan){
+    const p=S.plans.find(x=>x.id===openPlan);if(!p){openPlan=null;return vPlans()}
+    const list=phase=>p.items.map((it,i)=>(it.ph||'m')===phase?`<div class="row sp" style="margin:6px 0"><span>${esc(ex(it.ex).name)}</span><button class="sm dg" onclick="planDel('${p.id}',${i})">הסר</button></div>`:'').join('')||'<div class="mu">עדיין אין תרגילים</div>';
+    return `<h1>עריכת תוכנית</h1><div class="card">
+    <input value="${esc(p.name)}" onchange="planName('${p.id}',this.value)">
+    <h2>ימים קבועים</h2><div class="chips">${DAYS.map((d,i)=>`<span class="chip ${p.days.includes(i)?'on':''}" onclick="planDay('${p.id}',${i})">${d}</span>`).join('')}</div>
+    <h2>🔥 חימום</h2>${list('w')}
+    <select style="margin-top:8px" onchange="planAdd('${p.id}',this.value,'w')"><option value="">+ הוסף חימום…</option>${groupedOpts(()=>true,'חימום וניידות')}</select>
+    <h2>💪 אימון</h2>${list('m')}
+    <select style="margin-top:8px" onchange="planAdd('${p.id}',this.value,'m')"><option value="">+ הוסף תרגיל…</option>${groupedOpts(e=>e.type!=='w')}</select>
+    </div><div class="row"><button class="pri grow" onclick="openPlan=null;render()">סיום</button><button class="dg" onclick="planRemove('${p.id}')">מחק תוכנית</button></div>`;
+  }
+  return `<h1>תוכניות</h1>`+(S.plans.map(p=>`<div class="card row sp" onclick="openPlan='${p.id}';render()"><div><b>${esc(p.name)}</b><div class="mu">${p.days.map(d=>DAYS[d]).join(' ')||'ללא ימים קבועים'} · ${p.items.filter(i=>i.ph==='w').length} חימום · ${p.items.filter(i=>i.ph!=='w').length} אימון</div></div><span class="mu">‹</span></div>`).join('')||'<div class="empty">צור תוכנית ראשונה, למשל "דחיפה" או "רגליים"</div>')
+  +`<button class="pri" style="width:100%" onclick="planNew()">+ תוכנית חדשה</button>
+  <h2>ספריית התרגילים (${S.exercises.length})</h2>`+CAT_ORDER.map(g=>{
+    const l=S.exercises.filter(e=>(e.grp||'אחר')===g);
+    return l.length?`<details class="card"><summary><b>${g}</b> <span class="mu">· ${l.length}</span></summary><div class="chips" style="margin-top:8px">${l.map(e=>`<span class="chip">${esc(e.name)} ${e.type==='c'?'🏃':e.type==='w'?'🔥':e.type==='t'?'⏱':''}${g==='אחר'?` <a onclick="exDel('${e.id}')" style="color:var(--dg);cursor:pointer">✕</a>`:''}</span>`).join('')}</div></details>`:'';
+  }).join('')+`
+  <div class="card" style="margin-top:10px"><b>הוסף תרגיל משלך</b><div class="row" style="margin-top:8px"><input id="nex" placeholder="שם תרגיל חדש"><select id="nty" style="width:100px"><option value="s">כוח</option><option value="t">זמן (שניות)</option><option value="c">קרדיו</option><option value="w">חימום</option></select></div>
+  <input id="ntip" style="margin:8px 0" placeholder="טיפ או הנחיות למכשיר (לא חובה)"><button onclick="exNew()">הוסף תרגיל</button></div>`;
+}
+function planNew(){const p={id:uid(),name:'תוכנית חדשה',days:[],items:[]};S.plans.push(p);openPlan=p.id;save();render()}
+const P=id=>S.plans.find(p=>p.id===id);
+function planName(id,v){P(id).name=v||'תוכנית';save()}
+function planDay(id,d){const p=P(id);p.days=p.days.includes(d)?p.days.filter(x=>x!==d):[...p.days,d].sort();save();render()}
+function planAdd(id,x,phase){if(!x)return;if(x==='__new'){x=quickAdd(phase);if(!x){render();return}}P(id).items.push({ex:x,ph:phase});save();render()}
+function planDel(id,i){P(id).items.splice(i,1);save();render()}
+function planRemove(id){if(confirm('למחוק את התוכנית?')){S.plans=S.plans.filter(p=>p.id!==id);openPlan=null;save();render()}}
+function exNew(){const n=document.getElementById('nex').value.trim();if(!n)return;S.exercises.push({id:uid(),name:n,type:document.getElementById('nty').value,tip:document.getElementById('ntip').value.trim(),grp:'אחר'});save();render()}
+function exDel(id){
+  if(S.plans.some(p=>p.items.some(i=>i.ex===id))||S.workouts.some(w=>w.entries.some(e=>e.exId===id)))return toast('התרגיל בשימוש בתוכנית או בהיסטוריה, אי אפשר למחוק');
+  S.exercises=S.exercises.filter(e=>e.id!==id);save();render();
+}
+
+function vProgress(){
+  const strength=S.exercises.filter(e=>(e.type==='s'||e.type==='t')&&S.workouts.some(w=>w.entries.some(x=>x.exId===e.id&&ph(x)==='m')));
+  if(!histEx||!strength.find(e=>e.id===histEx))histEx=strength[0]&&strength[0].id;
+  let h=`<h1>התקדמות</h1>`;
+  if(!S.workouts.length)return h+`<div class="empty">עוד אין אימונים. סיים אימון ראשון והגרפים יופיעו כאן 📈</div>`;
+  if(histEx){
+    // תרגיל עם משקל: 1RM משוער. משקל גוף בלבד: מקסימום חזרות. תרגיל זמן: מקסימום שניות
+    const he=ex(histEx),weighted=he.type==='s'&&S.workouts.some(w=>w.entries.some(e=>e.exId===histEx&&ph(e)==='m'&&e.sets.some(s=>!isBW(s))));
+    const pts=S.workouts.map(w=>{let b=0;w.entries.forEach(e=>{if(e.exId===histEx&&ph(e)==='m')e.sets.forEach(s=>{if(he.type==='t'||isBW(s)!==weighted)b=Math.max(b,setScore(he,s))})});return b?{t:w.start,v:b}:null}).filter(Boolean);
+    const label=he.type==='t'?'משך מקסימלי בשניות':weighted?'1RM משוער (נוסחת Epley, ללא חימום)':'מקסימום חזרות (משקל גוף)';
+    h+=`<div class="card"><select onchange="histEx=this.value;render()">${strength.map(e=>`<option value="${e.id}" ${e.id===histEx?'selected':''}>${esc(e.name)}</option>`).join('')}</select>
+    <div class="mu" style="margin:8px 0">${label}</div>${chart(pts)}</div>`;
+  }
+  h+=`<h2>היסטוריה</h2>`+S.workouts.slice().reverse().slice(0,30).map(w=>{
+    const vol=volume(w),min=Math.round((w.end-w.start)/6e4),warm=w.entries.filter(e=>ph(e)==='w'),main=w.entries.filter(e=>ph(e)==='m');
+    const line=e=>{const x=ex(e.exId);return esc(x.name)+' '+(x.type==='s'?e.sets.length+' סטים':x.type==='t'?e.sets.length+' סטים · עד '+Math.max(0,...e.sets.map(s=>+s.sec||0))+' שנ׳':x.type==='c'?e.sets.reduce((a,s)=>a+(s.km||0),0).toFixed(1)+' ק"מ':e.sets.reduce((a,s)=>a+(s.min||0),0)+' דק׳')};
+    return `<div class="card"><div class="row sp"><b>${esc(w.name)}</b><span class="mu">${fmtDate(w.start)} · ${min} דק׳</span></div>
+    ${warm.length?`<div class="mu">🔥 חימום: ${warm.map(line).join(' · ')}</div>`:''}
+    <div class="mu">💪 ${main.map(line).join(' · ')}</div>
+    ${vol?`<div class="mu">נפח כולל: ${Math.round(vol).toLocaleString()} ק"ג</div>`:''}
+    ${w.verdict?`<div class="fb ${w.verdict.t}">${esc(w.verdict.m)}</div>`:''}
+    <button class="sm dg" onclick="delWorkout('${w.id}')">מחק</button></div>`}).join('');
+  return h;
+}
+function delWorkout(id){if(confirm('למחוק את האימון?')){S.workouts=S.workouts.filter(w=>w.id!==id);save();render()}}
+function chart(p){
+  if(p.length<2)return `<div class="empty">צריך לפחות 2 אימונים לגרף</div>`;
+  const W=320,H=140,pad=24,min=Math.min(...p.map(x=>x.v))*.95,max=Math.max(...p.map(x=>x.v))*1.02,t0=p[0].t,t1=p[p.length-1].t||1;
+  const X=t=>pad+(t-t0)/(t1-t0||1)*(W-pad*2),Y=v=>H-pad-(v-min)/(max-min||1)*(H-pad*2);
+  return `<svg viewBox="0 0 ${W} ${H}"><polyline fill="none" stroke="var(--ac)" stroke-width="2.5" points="${p.map(x=>X(x.t)+','+Y(x.v)).join(' ')}"/>
+  ${p.map(x=>`<circle cx="${X(x.t)}" cy="${Y(x.v)}" r="3.5" fill="var(--ac)"/>`).join('')}
+  <text x="${pad}" y="12" fill="var(--mu)" font-size="11">${Math.round(max)}</text><text x="${pad}" y="${H-6}" fill="var(--mu)" font-size="11">${Math.round(min)}</text>
+  <text x="${W-pad}" y="${H-6}" fill="var(--mu)" font-size="11" text-anchor="end">${fmtDate(t1)}</text></svg>`;
+}
+function vSettings(){
+  const today=ymd(Date.now()),up=S.cal.filter(e=>e.end>=today).sort((a,b)=>a.start<b.start?-1:1);
+  return `<h1>הגדרות</h1><div class="card">
+  <div class="row sp"><span>זמן מנוחה (שניות)</span><input type="number" style="width:90px" value="${S.settings.rest}" onchange="S.settings.rest=+this.value||90;save()"></div><br>
+  <div class="row sp"><span>יעד אימונים בשבוע</span><input type="number" style="width:90px" value="${S.settings.goal}" onchange="S.settings.goal=+this.value||3;save()"></div><br>
+  <label class="row sp"><span>צפצוף בסוף המנוחה</span><input type="checkbox" style="width:auto" ${S.settings.sound!==false?'checked':''} onchange="S.settings.sound=this.checked;save()"></label><br>
+  <label class="row sp"><span>מסך דולק בזמן אימון<div class="mu">כשהמסך כבוי הטלפון עוצר את טיימר המנוחה</div></span><input type="checkbox" style="width:auto" ${S.settings.wake!==false?'checked':''} onchange="S.settings.wake=this.checked;save();syncWakeLock()"></label></div>
+  <h2>📅 יומן: חגים וחופשות</h2><div class="card">
+  <div class="mu" style="margin-bottom:8px">סנכרון ישיר עם Google Calendar (קריאה בלבד). נקראים כל היומנים שלך, כולל יומן החגים, ונשמרים רק אירועי חג וחופשה. יעד השבוע והצעות האימון יותאמו אוטומטית.</div>
+  <input id="gid" dir="ltr" placeholder="Google OAuth Client ID" value="${esc(S.settings.gid||'')}" style="margin-bottom:8px">
+  <button class="pri" onclick="gSync()">🔄 התחבר וסנכרן עם Google</button>
+  <div class="mu" style="margin:6px 0 10px">${S.settings.lastSync?'סנכרון אחרון: '+new Date(S.settings.lastSync).toLocaleString('he-IL'):'עוד לא סונכרן'}</div>
+  <button onclick="document.getElementById('ics').click()">או ייבוא קובץ (.ics)</button>
+  <input id="ics" type="file" accept=".ics,text/calendar" hidden onchange="importICS(this.files[0])">
+  <h2 style="font-size:15px">הוספה ידנית</h2>
+  <input id="ct" placeholder="שם (למשל: חופשה באילת)"><div class="grid2"><input id="ca" type="date"><input id="cb" type="date"></div>
+  <div class="row"><select id="ck"><option value="vacation">חופשה</option><option value="holiday">חג</option></select><button class="pri" onclick="calAdd()">הוסף</button></div>
+  ${up.length?`<h2 style="font-size:15px">אירועים קרובים</h2>`+up.slice(0,12).map(e=>`<div class="row sp" style="margin:6px 0"><span>${kindIcon(e.kind)} ${esc(e.title)} <span class="mu">${e.start===e.end?e.start:e.start+' – '+e.end}</span></span><button class="sm dg" onclick="calDel('${e.id}')">הסר</button></div>`).join(''):''}
+  </div>
+  <h2>גיבוי נתונים</h2><div class="card"><div class="mu" style="margin-bottom:8px">הנתונים נשמרים רק במכשיר הזה. ${S.settings.persisted?'✅ הדפדפן אישר אחסון קבוע.':'⚠️ הדפדפן עדיין לא אישר אחסון קבוע. כדי שהנתונים לא יימחקו, התקן את האפליקציה למסך הבית (באייפון: שיתוף ← הוסף למסך הבית).'}<br>גיבוי אחרון: ${S.settings.lastBackup?fmtDate(S.settings.lastBackup):'אף פעם'}</div>
+  <div class="row" style="flex-wrap:wrap"><button onclick="exportJSON()">ייצוא JSON</button><button onclick="exportCSV()">ייצוא CSV</button><button onclick="document.getElementById('imp').click()">ייבוא</button></div>
+  <input id="imp" type="file" accept=".json" hidden onchange="importJSON(this.files[0])"></div>
+  <h2>נתוני דוגמה</h2><div class="card"><button onclick="seed()">טען 6 שבועות של נתוני דוגמה</button> <button class="dg" onclick="wipe()">מחק הכל</button></div>`;
+}
+function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click()}
+function exportJSON(){dl(`gymtrack-backup-${ymd(Date.now())}.json`,JSON.stringify(S),'application/json');S.settings.lastBackup=Date.now();save();render()}
+function exportCSV(){
+  const rows=[['date','workout','phase','exercise','set','weight_kg','reps','seconds','minutes','km']];
+  S.workouts.forEach(w=>w.entries.forEach(e=>e.sets.forEach((s,i)=>rows.push([new Date(w.start).toISOString().slice(0,10),w.name,ph(e)==='w'?'warmup':'main',ex(e.exId).name,i+1,s.w??'',s.r??'',s.sec??'',s.min??'',s.km??'']))));
+  dl('gymtrack.csv','﻿'+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'),'text/csv');
+}
+/* ייבוא מחליף את כל הנתונים: מבקשים אישור, ולפני ההחלפה מורידים גיבוי של המצב הנוכחי */
+function importJSON(f){
+  if(!f)return;
+  f.text().then(t=>{
+    let d;try{d=JSON.parse(t);if(!d.exercises)throw 0}catch(e){return toast('קובץ לא תקין')}
+    const n=(d.workouts||[]).length;
+    if(S.workouts.length&&!confirm(`הייבוא יחליף את כל הנתונים הנוכחיים (${S.workouts.length} אימונים) בנתונים מהקובץ (${n} אימונים).\nלפני ההחלפה יורד אוטומטית גיבוי של המצב הנוכחי. להמשיך?`))return;
+    if(S.workouts.length)dl(`gymtrack-before-import-${ymd(Date.now())}.json`,JSON.stringify(S),'application/json');
+    S=normalize(d);S.settings.lastBackup=Date.now();save();render();toast(`יובא בהצלחה: ${n} אימונים`);
+  }).finally(()=>{const i=document.getElementById('imp');if(i)i.value=''});
+}
+function wipe(){if(confirm('למחוק את כל הנתונים?')){localStorage.removeItem(KEY);idb('readwrite',st=>st.delete(KEY)).catch(()=>{});S=normalize(null);save();render()}}
+function seed(){
+  const id=n=>S.exercises.find(e=>e.name===n).id;
+  S.plans=[{id:uid(),name:'דחיפה',days:[0,3],items:[{ex:id('ריצה קלה'),ph:'w'},{ex:id('סיבובי כתפיים'),ph:'w'},{ex:id('לחיצת חזה'),ph:'m'},{ex:id('לחיצת כתפיים'),ph:'m'}]},
+           {id:uid(),name:'משיכה ורגליים',days:[1,4],items:[{ex:id('ריצה קלה'),ph:'w'},{ex:id('גשר גלוטאוס'),ph:'w'},{ex:id('סקוואט'),ph:'m'},{ex:id('חתירה במוט'),ph:'m'},{ex:id('מתח'),ph:'m'}]}];
+  S.workouts=[];const now=Date.now();
+  for(let w=5;w>=0;w--)for(const d of [1,3,5]){
+    const t=now-(w*7+d)*864e5;if(t>now)continue;
+    S.workouts.push({id:uid(),start:t,end:t+55*6e4,name:d===3?'דחיפה':'משיכה ורגליים',entries:[
+      {exId:id('ריצה קלה'),ph:'w',sets:[{min:5,done:true}]},
+      {exId:id(d===3?'לחיצת חזה':'סקוואט'),ph:'m',sets:[0,1,2].map(()=>({w:(d===3?50:70)+(5-w)*2.5,r:8,done:true}))},
+      {exId:id('ריצה'),ph:'m',sets:[{min:25+(5-w),km:4.5+(5-w)*.2,done:true}]}]});
+  }
+  S.workouts.sort((a,b)=>a.start-b.start);
+  const t=ymd(Date.now());
+  S.cal=[{id:uid(),title:'חג לדוגמה',start:addDays(t,3),end:addDays(t,3),kind:'holiday'},{id:uid(),title:'חופשה באילת',start:addDays(t,5),end:addDays(t,9),kind:'vacation'}];
+  save();render();toast('נטענו נתוני דוגמה');
+}
+
+/* ---------- shell ---------- */
+const TABS=[['today','🏋️','אימון'],['plans','📋','תוכניות'],['progress','📈','התקדמות'],['settings','⚙️','הגדרות']];
+function render(){
+  document.getElementById('app').innerHTML={today:vToday,plans:vPlans,progress:vProgress,settings:vSettings}[tab]();
+  document.getElementById('nav').innerHTML=TABS.map(([k,i,l])=>`<button class="${tab===k?'on':''}" onclick="tab='${k}';render();scrollTo(0,0)"><b>${i}</b>${l}</button>`).join('');
+  syncWakeLock();
+}
+render();
+if(S.current&&S.current.restEnd>Date.now())resumeRest();
+// קודם בודקים אם יש עותק עדכני יותר ב-IndexedDB, ורק אז שומרים, כדי לא לדרוס אותו במצב ריק
+restoreFromIDB().then(askPersist).then(()=>{save();render()});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
