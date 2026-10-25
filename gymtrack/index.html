@@ -59,12 +59,28 @@ nav button b{font-size:20px;font-weight:400}nav button.on{color:var(--ac)}
 svg{width:100%;height:auto;display:block}
 .empty{text-align:center;color:var(--mu);padding:20px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.set .n{background:none;padding:0;line-height:1.1;font-size:15px}.set .n small{display:block;font-size:10px;color:var(--dg);opacity:.7}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px;margin-inline-start:34px}.steps button{padding:6px 9px;font-size:13px}
+.sug{font-size:13px;background:rgba(74,222,128,.12);color:var(--tx);border-radius:10px;padding:8px 10px;margin:8px 0}.sug b{color:var(--ac)}
+.feel{display:flex;gap:6px;margin:4px 0 8px}.feel button{flex:1;padding:8px 4px;font-size:13px}.feel button.on{background:var(--ac);color:#06210f;font-weight:700}
+.fe{font-size:13px}
+.addbtn{width:100%;text-align:start;color:var(--mu)}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:20;display:none;align-items:flex-end;justify-content:center}
+#modal.show{display:flex}
+#modal .sheet{background:var(--bg);width:100%;max-width:640px;max-height:85vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+#modal .top{position:sticky;top:-16px;background:var(--bg);padding:4px 0 8px;z-index:1}
+.pick{display:block;width:100%;text-align:start;background:var(--card);margin:4px 0}
+.pick.new{color:var(--ac);font-weight:700}.pg{margin:12px 4px 2px}
+#toast button{margin-inline-start:8px;background:#222;color:#fff}
+.vol{display:grid;grid-template-columns:76px 1fr 64px;gap:8px;align-items:center;margin:6px 0;font-size:14px}
+.vol .bar{margin:0}.vol .bar>i.lo{background:var(--wr)}.vol .bar>i.hi{background:var(--bl)}
 </style>
 </head>
 <body>
 <main id="app"></main>
 <div id="rest"><span>⏱ מנוחה</span><span id="rt" style="font-size:20px">0:00</span><span class="grow"></span><button class="sm" onclick="addRest(15)">+15</button><button class="sm" onclick="stopRest()">דלג</button></div>
 <div id="toast"></div>
+<div id="modal" onclick="if(event.target===this)closeModal()"></div>
 <nav id="nav"></nav>
 <script>
 /* קטלוג תרגילים. כל פריט: [שם, סוג (s=כוח, t=זמן בשניות, c=קרדיו, w=חימום), טיפ]. סוג ברירת מחדל: כוח */
@@ -268,23 +284,6 @@ async function askPersist(){
 }
 const needsBackup=()=>S.workouts.length>=3&&Date.now()-(S.settings.lastBackup||S.workouts[0].start)>14*864e5;
 const ex=id=>S.exercises.find(e=>e.id===id)||{name:'?',type:'s'};
-/* רשימת בחירה מקובצת לפי קבוצת שרירים. first = קבוצה שתופיע ראשונה */
-function groupedOpts(filter,first){
-  const order=first?[first,...CAT_ORDER.filter(g=>g!==first)]:CAT_ORDER;
-  return order.map(g=>{
-    const l=S.exercises.filter(e=>(e.grp||'אחר')===g&&filter(e));
-    return l.length?`<optgroup label="${g}">${l.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')}</optgroup>`:'';
-  }).join('')+`<option value="__new">✏️ אחר: הזנה ידנית…</option>`;
-}
-/* הזנה ידנית של תרגיל / סוג אימון */
-function quickAdd(phase){
-  const name=(prompt('שם התרגיל או סוג האימון:')||'').trim();if(!name)return null;
-  const d=phase==='w'?'3':'1';
-  const t=(prompt('סוג: 1 = כוח (משקל וחזרות), 2 = קרדיו (זמן ומרחק), 3 = חימום (זמן), 4 = החזקה בזמן (שניות, למשל פלנק)',d)||d).trim();
-  const tip=(prompt('טיפ או הנחיות למכשיר (אפשר לדלג):','')||'').trim();
-  const e={id:uid(),name,type:{'1':'s','2':'c','3':'w','4':'t'}[t]||'s',tip,grp:'אחר'};
-  S.exercises.push(e);save();return e.id;
-}
 const e1rm=(w,r)=>w*(1+r/30);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtDate=t=>new Date(t).toLocaleDateString('he-IL',{day:'numeric',month:'short'});
@@ -294,9 +293,13 @@ const addDays=(str,n)=>{const d=new Date(str+'T12:00:00');d.setDate(d.getDate()+
 const ph=e=>e.ph||'m';
 
 /* ---------- history helpers (חימום לא נספר בשיאים ובנפח) ---------- */
-function lastSets(exId,phase='m'){
-  for(let i=S.workouts.length-1;i>=0;i--){
-    const en=S.workouts[i].entries.find(e=>e.exId===exId&&ph(e)===phase);
+/* האימונים שמולם משווים. בעריכת אימון שנשמר: רק אימונים שלפניו, ולא הוא עצמו */
+const pastWorkouts=()=>{const c=S.current;return c&&c.editId?S.workouts.filter(w=>w.id!==c.editId&&w.start<c.start):S.workouts};
+function lastSets(exId,phase='m',skipDeload){
+  const H=pastWorkouts();
+  for(let i=H.length-1;i>=0;i--){
+    if(skipDeload&&H[i].deload)continue;
+    const en=H[i].entries.find(e=>e.exId===exId&&ph(e)===phase);
     if(en){const d=en.sets.filter(s=>s.done);if(d.length)return d}
   }return null;
 }
@@ -306,8 +309,53 @@ const setScore=(e,s)=>e.type==='t'?(+s.sec||0):isBW(s)?(+s.r||0):e1rm(+s.w,+s.r)
 const fmtSet=(e,s)=>e.type==='t'?`${s.sec} שנ׳`:isBW(s)?`${s.r} חזרות`:`${s.w}×${s.r}`;
 function bestScore(exId,bw){
   const e=ex(exId);let b=0;
-  S.workouts.forEach(w=>w.entries.forEach(en=>{if(en.exId===exId&&ph(en)==='m')en.sets.forEach(s=>{if(s.done&&(e.type==='t'||isBW(s)===bw))b=Math.max(b,setScore(e,s))})}));
+  pastWorkouts().forEach(w=>w.entries.forEach(en=>{if(en.exId===exId&&ph(en)==='m')en.sets.forEach(s=>{if(s.done&&(e.type==='t'||isBW(s)===bw))b=Math.max(b,setScore(e,s))})}));
   return b;
+}
+
+/* ---------- מנוע התקדמות (Double Progression) ----------
+   עובדים בטווח חזרות לפי המטרה (מסה: 8–12). כשכל הסטים הגיעו לקצה העליון, מעלים משקל וחוזרים לקצה התחתון.
+   התחושה שסימנת אחרי הסט (😌 קל / 😤 מאתגר / 🥵 עד הקצה) מזרזת או מאטה את ההתקדמות.
+   כל שבוע רביעי (ניתן לשינוי) הוא שבוע הקלה: משקל מופחת ופחות סטים */
+const GOALS={hyp:{l:'מסה ונפח שריר',min:8,max:12,vol:[10,20]},str:{l:'כוח',min:3,max:6,vol:[6,12]},end:{l:'סיבולת וכושר',min:12,max:15,vol:[8,16]}};
+const goalCfg=()=>GOALS[S.settings.goalType]||GOALS.hyp;
+const incFor=w=>w>=40?2.5:1;
+const roundTo=(v,st)=>Math.round(v/st)*st;
+const FEEL=[null,'😌','😤','🥵'];
+function weekNo(t){return S.workouts.length?Math.round((startOfWeek(t)-startOfWeek(S.workouts[0].start))/(7*864e5))+1:1}
+function isDeloadWeek(t){const n=S.settings.deload??4;return !!n&&S.workouts.length>0&&weekNo(t)%n===0}
+function suggest(exId){
+  const e=ex(exId),g=goalCfg(),prev=lastSets(exId,'m',true);
+  if(!prev||(e.type!=='s'&&e.type!=='t'))return null;
+  const n=prev.length,hard=prev.some(s=>s.feel===3),easy=prev.every(s=>s.feel===1),add=hard?0:easy?2:1;
+  if(isDeloadWeek(S.current?S.current.start:Date.now())){
+    const why='🧘 שבוע הקלה: פחות משקל ופחות סטים, כדי שהגוף יתאושש ויחזור חזק יותר';
+    const dn=Math.max(2,Math.ceil(n*.6));
+    if(e.type==='t')return {sec:Math.round(Math.max(...prev.map(s=>+s.sec||0))*.8),n:dn,why};
+    const top=Math.max(...prev.map(s=>+s.w||0));
+    return top>0?{w:roundTo(top*.9,incFor(top)),r:g.min,n:dn,why}:{w:0,r:Math.max(1,Math.round(Math.min(...prev.map(s=>+s.r||0))*.7)),n:dn,why};
+  }
+  if(e.type==='t'){
+    const sec=Math.max(...prev.map(s=>+s.sec||0)),a=add*5;
+    return {sec:sec+a,n,why:a?`בפעם הקודמת ${sec} שנ׳${easy?' והרגיש קל':''}. נסה ${sec+a}`:`בפעם הקודמת ${sec} שנ׳ עד הקצה. נסה שוב אותו זמן`};
+  }
+  const top=Math.max(...prev.map(s=>+s.w||0)),minR=Math.min(...prev.filter(s=>(+s.w||0)===top).map(s=>+s.r||0));
+  if(top===0){
+    if(minR>=g.max+3)return {w:0,r:minR,n,why:`${minR} חזרות במשקל גוף: הגיע הזמן להוסיף משקל (חגורה או אפוד) או לעבור לגרסה קשה יותר`};
+    return {w:0,r:minR+add,n,why:add?`בפעם הקודמת ${minR} חזרות. נסה ${minR+add}`:`בפעם הקודמת ${minR} חזרות עד הקצה. נסה שוב אותו מספר`};
+  }
+  if(minR>=g.max&&!hard){const w=top+incFor(top);return {w,r:g.min,n,why:`הגעת ל-${g.max} חזרות בכל הסטים 👏 עולים ל-${w} ק"ג וחוזרים ל-${g.min} חזרות`}}
+  if(minR<g.min&&hard){const w=roundTo(top*.95,incFor(top));return {w,r:g.min,n,why:`בפעם הקודמת ${top}×${minR} עד הקצה, מתחת לטווח. מורידים ל-${w} ק"ג כדי לעבוד נקי ב-${g.min}–${g.max}`}}
+  const r=Math.min(g.max,Math.max(g.min,minR+add));
+  return {w:top,r,n,why:r>minR?`בפעם הקודמת ${top}×${minR}. נשארים במשקל ומוסיפים חזרות (${r})`:`בפעם הקודמת ${top}×${minR}. נשארים על אותו משקל וחזרות`};
+}
+/* סטים לקבוצת שרירים בשבוע (רק אימון, בלי חימום) */
+function weeklySets(wk){
+  const out={};
+  S.workouts.filter(w=>w.start>=wk&&w.start<wk+7*864e5).forEach(w=>w.entries.forEach(en=>{
+    const e=ex(en.exId);if(ph(en)==='m'&&(e.type==='s'||e.type==='t'))out[e.grp||'אחר']=(out[e.grp||'אחר']||0)+en.sets.filter(s=>s.done).length;
+  }));
+  return out;
 }
 /* אחוז שינוי מול הפעם הקודמת. משקל גוף מושווה לפי חזרות, תרגיל זמן לפי שניות */
 function progressPct(e,s,p){
@@ -436,6 +484,12 @@ function newEntry(exId,phase){
   const e=ex(exId);phase=phase||(e.type==='w'?'w':'m');
   const prev=lastSets(exId,phase),l=prev&&prev[prev.length-1];
   let base;
+  if(phase==='m'&&(e.type==='s'||e.type==='t')){
+    const sg=suggest(exId);
+    if(sg){const b=e.type==='t'?{sec:sg.sec,done:false}:{w:sg.w,r:sg.r,done:false};return {exId,ph:phase,sug:sg.why,sets:Array.from({length:sg.n},()=>({...b}))}}
+    // תרגיל חדש: 3 סטים ריקים. מה שתמלא בסט הראשון יועתק לשאר
+    if(!l)return {exId,ph:phase,sets:[0,1,2].map(()=>e.type==='t'?{sec:'',done:false}:{w:'',r:'',done:false})};
+  }
   if(e.type==='s')base={w:l?l.w:'',r:l?l.r:'',done:false};
   else if(e.type==='t')base={sec:l?l.sec:'',done:false};
   else if(e.type==='c')base={min:l?l.min:'',km:l?l.km:'',done:false};
@@ -446,7 +500,10 @@ function startWorkout(planId,short,customName){
   const p=S.plans.find(p=>p.id===planId);
   let items=p?p.items:[];
   if(short){const m=items.filter(i=>i.ph!=='w').slice(0,3);items=[...items.filter(i=>i.ph==='w'),...m]}
-  S.current={id:uid(),start:Date.now(),name:(p?p.name:((customName||'').trim()||'אימון חופשי'))+(short?' (מקוצר)':''),entries:items.map(i=>newEntry(i.ex,i.ph))};
+  S.current={id:uid(),start:Date.now(),name:(p?p.name:((customName||'').trim()||'אימון חופשי'))+(short?' (מקוצר)':''),entries:[]};
+  S.current.deload=isDeloadWeek(S.current.start);
+  S.current.entries=items.map(i=>newEntry(i.ex,i.ph));
+  if(!S.current.deload)delete S.current.deload;
   save();render();
 }
 function startShort(){
@@ -454,7 +511,7 @@ function startShort(){
   startWorkout(p&&p.id,true);
 }
 function verdict(w){
-  const prev=[...S.workouts].reverse().find(x=>x.name===w.name);
+  const prev=S.workouts.filter(x=>x.id!==w.id&&x.start<w.start).reverse().find(x=>x.name===w.name);
   const v=volume(w);
   if(!prev||!volume(prev)||!v)return {t:'neu',m:'אימון ראשון מסוג זה, זה יהיה קו הבסיס להשוואה'};
   const d=(v-volume(prev))/volume(prev)*100;
@@ -467,18 +524,45 @@ function finishWorkout(){
   c.entries.forEach(e=>e.sets=e.sets.filter(s=>s.done));
   c.entries=c.entries.filter(e=>e.sets.length);
   if(!c.entries.length){if(!confirm('אין סטים שהושלמו. לבטל את האימון?'))return;S.current=null;save();stopRest();render();return}
-  c.entries.forEach(e=>{delete e.fb});
-  delete c.restEnd;c.end=Date.now();c.verdict=verdict(c);
+  c.entries.forEach(e=>{delete e.fb;delete e.sug;delete e.ask});
+  delete c.restEnd;c.verdict=verdict(c);
+  if(c.editId){
+    // עריכת אימון שנשמר: מחליפים אותו במקום, ושומרים על זמני ההתחלה והסיום המקוריים
+    const k=S.workouts.findIndex(w=>w.id===c.editId);delete c.editId;
+    if(k>=0)S.workouts[k]=c;else S.workouts.push(c);
+    S.current=null;stopRest();save();tab='progress';render();toast('✔ האימון עודכן');return;
+  }
+  c.end=Date.now();
   S.workouts.push(c);S.current=null;stopRest();save();tab='progress';render();toast(c.verdict.m);
 }
-function cancelWorkout(){if(confirm('לבטל את האימון הנוכחי?')){S.current=null;save();stopRest();render()}}
-function addExerciseToCurrent(id,phase){if(!id)return;if(id==='__new'){id=quickAdd(phase);if(!id){render();return}}S.current.entries.push(newEntry(id,phase));save();render()}
+function cancelWorkout(){if(confirm(S.current.editId?'לצאת בלי לשמור את השינויים?':'לבטל את האימון הנוכחי?')){S.current=null;save();stopRest();render()}}
+function editWorkout(id){
+  if(S.current)return toast('יש אימון פעיל. סיים או בטל אותו קודם');
+  const w=S.workouts.find(x=>x.id===id);if(!w)return;
+  S.current=JSON.parse(JSON.stringify(w));S.current.editId=id;delete S.current.verdict;
+  tab='today';save();render();scrollTo(0,0);
+}
+function addExerciseToCurrent(id,phase){if(!id)return;S.current.entries.push(newEntry(id,phase));save();render()}
 function addSet(i){
   const en=S.current.entries[i],l=en.sets[en.sets.length-1];
   en.sets.push({...l,done:false,pr:undefined});save();render();
 }
-function delSet(i,j){S.current.entries[i].sets.splice(j,1);if(!S.current.entries[i].sets.length)S.current.entries.splice(i,1);save();render()}
-function setVal(i,j,k,v){S.current.entries[i].sets[j][k]=v===''?'':parseFloat(v);save()}
+/* מחיקת סט, עם "בטל" בהודעה למשך 5 שניות */
+let undoFn=null;
+function delSet(i,j){
+  const c=S.current,en=c.entries[i],[st]=en.sets.splice(j,1),gone=!en.sets.length;
+  if(gone)c.entries.splice(i,1);
+  undoFn=()=>{if(S.current!==c)return;en.sets.splice(j,0,st);if(gone)c.entries.splice(i,0,en);save();render()};
+  save();render();toast(gone?`${ex(en.exId).name} הוסר`:`סט ${j+1} נמחק`,'בטל');
+}
+function doUndo(){if(undoFn){undoFn();undoFn=null}document.getElementById('toast').style.display='none'}
+function setVal(i,j,k,v){
+  const sets=S.current.entries[i].sets,val=v===''?'':parseFloat(v);sets[j][k]=val;
+  // מילוי אוטומטי: סטים הבאים שעוד ריקים מקבלים את אותו ערך
+  for(let x=j+1;x<sets.length;x++)if(!sets[x].done&&sets[x][k]==='')sets[x][k]=val;
+  save();
+}
+function bump(i,j,k,d){const s=S.current.entries[i].sets[j];s[k]=Math.max(0,Math.round(((+s[k]||0)+d)*100)/100);save();render()}
 
 /* חיווי חי אחרי כל סט */
 function feedback(en,j){
@@ -491,6 +575,7 @@ function feedback(en,j){
     if(d<=-5)return {t:'bad',m:`⚠️ קצב איטי ב-${(-d).toFixed(0)}% מהפעם הקודמת. אולי עייפות? אפשר לשמור על קצב נוח היום`};
     return {t:'neu',m:'✔ קצב דומה לפעם הקודמת'};
   }
+  if(S.current&&S.current.deload)return {t:'neu',m:'🧘 שבוע הקלה: לא משווים לפעם הקודמת. המטרה היא תנועה נקייה והתאוששות'};
   let msg=null;
   if(!p)msg={t:'neu',m:'🆕 קו בסיס ראשון לתרגיל, בפעם הבאה נשווה'};
   else{
@@ -502,7 +587,7 @@ function feedback(en,j){
   if(e.type==='t')return msg;
   const first=en.sets[0];
   if(j>0&&first.done&&s.r<=first.r-3&&msg.t!=='bad')msg={t:'bad',m:`⚠️ ירידה של ${first.r-s.r} חזרות מהסט הראשון, סימן לעייפות. הארך את המנוחה`};
-  else if(s.r>=12&&msg.t!=='bad')msg.m+=isBW(s)?' · 💡 12+ חזרות: אפשר להוסיף משקל (חגורה או אפוד) או לעבור לגרסה קשה יותר':` · 💡 12+ חזרות: הוסף ${s.w>=40?2.5:1} ק"ג בסט הבא`;
+  else if(s.r>=goalCfg().max&&msg.t!=='bad')msg.m+=isBW(s)?` · 💡 ${goalCfg().max}+ חזרות: אפשר להוסיף משקל (חגורה או אפוד) או לעבור לגרסה קשה יותר`:` · 💡 ${goalCfg().max}+ חזרות: אפשר להוסיף ${incFor(+s.w)} ק"ג בסט הבא`;
   return msg;
 }
 function toggleSet(i,j){
@@ -518,8 +603,22 @@ function toggleSet(i,j){
       const b=bestScore(en.exId,isBW(s)),cur=en.sets.filter((x,k)=>k!==j&&x.done&&x.pr).length;
       if(b>0&&setScore(e,s)>b+0.01&&!cur){s.pr=true;en.fb={t:'good',m:'🏆 שיא אישי חדש בתרגיל!'};toast('🏆 שיא אישי חדש!')}
     }
-    if(e.type==='s'||e.type==='t')startRest(ph(en)==='w'?45:S.settings.rest);
-  }else{delete s.pr;en.fb=null}
+    if((e.type==='s'||e.type==='t')&&ph(en)==='m')en.ask=j;
+    if((e.type==='s'||e.type==='t')&&!S.current.editId)startRest(ph(en)==='w'?45:S.settings.rest);
+  }else{delete s.pr;delete s.feel;en.fb=null;if(en.ask===j)delete en.ask}
+  save();render();
+}
+/* תחושה אחרי סט: משפיעה על ההמלצה לפעם הבאה, וגם על הסט הבא באותו אימון */
+function setFeel(i,j,f){
+  const en=S.current.entries[i],s=en.sets[j],e=ex(en.exId),nx=en.sets[j+1];
+  s.feel=f;delete en.ask;
+  let tip='';
+  if(nx&&!nx.done){
+    if(f===1&&e.type==='s'&&+s.w>0&&+nx.w===+s.w){nx.w=+s.w+incFor(+s.w);tip=`😌 הרגיש קל: העליתי את סט ${j+2} ל-${nx.w} ק"ג`}
+    else if(f===1&&e.type==='t'&&+nx.sec===+s.sec){nx.sec=+s.sec+5;tip=`😌 הרגיש קל: סט ${j+2} יהיה ${nx.sec} שנ׳`}
+    else if(f===3){tip='🥵 עד הקצה: אל תעלה משקל בסט הבא. הוספתי 30 שניות מנוחה';if(document.getElementById('rest').classList.contains('show'))addRest(30)}
+  }
+  if(tip)en.fb={t:f===3?'neu':'good',m:tip};
   save();render();
 }
 
@@ -564,7 +663,11 @@ async function syncWakeLock(){
   }catch(e){}
 }
 document.addEventListener('visibilitychange',()=>{syncWakeLock();if(!document.hidden&&S.current&&S.current.restEnd)resumeRest()});
-let tt;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',3200)}
+let tt;function toast(m,undoLabel){
+  const t=document.getElementById('toast');t.textContent=m;
+  if(undoLabel){const b=document.createElement('button');b.className='sm';b.textContent=undoLabel;b.onclick=doUndo;t.appendChild(b)}
+  t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>{t.style.display='none';if(undoLabel)undoFn=null},undoLabel?5000:3200);
+}
 
 /* ---------- stats ---------- */
 function streak(){
@@ -587,7 +690,8 @@ function vToday(){
   const wk=startOfWeek(Date.now()),days=new Set(S.workouts.filter(w=>w.start>=wk).map(w=>new Date(w.start).getDay()));
   const td=new Date().getDay(),cnt=S.workouts.filter(w=>w.start>=wk).length,goal=weekGoal(wk);
   const bk=!S.current&&needsBackup()?`<div class="banner"><b>💾 הגיע הזמן לגבות</b><div class="mu" style="margin:4px 0 8px">${S.settings.lastBackup?'הגיבוי האחרון היה לפני יותר משבועיים':'עוד לא גיבית את הנתונים'}. הנתונים שמורים רק במכשיר הזה, וגיבוי לוקח שנייה.</div><button class="pri sm" onclick="exportJSON()">גבה עכשיו</button> <button class="sm" onclick="S.settings.lastBackup=Date.now()-7*864e5;save();render()">הזכר לי בעוד שבוע</button></div>`:'';
-  let h=`<h1>היי 👋</h1>${bk}${S.current?'':calBanner()}<div class="stats">
+  const dlb=!S.current&&isDeloadWeek(Date.now())?`<div class="banner"><b>🧘 השבוע: שבוע הקלה (שבוע ${weekNo(Date.now())})</b><div class="mu">אחרי כמה שבועות של התקדמות הגוף צריך להתאושש. ההמלצות השבוע יהיו עם כ-10% פחות משקל ופחות סטים. בשבוע הבא חוזרים להתקדם.</div></div>`:'';
+  let h=`<h1>היי 👋</h1>${bk}${dlb}${S.current?'':calBanner()}<div class="stats">
    <div class="stat"><b>${cnt}/${goal}</b><span class="mu">יעד השבוע${goal<S.settings.goal?' (מותאם ליומן)':''}</span></div>
    <div class="stat"><b>🔥 ${streak()}</b><span class="mu">שבועות ברצף</span></div>
    <div class="stat"><b>${S.workouts.length}</b><span class="mu">אימונים</span></div></div>
@@ -605,35 +709,42 @@ function entryCard(en,i){
   const e=ex(en.exId),phase=ph(en),prev=lastSets(en.exId,phase),t=e.type;
   let h=`<div class="card ${phase==='w'?'warm':'main'}"><div class="row sp"><b>${esc(e.name)}</b><span class="mu">${t==='s'?'כוח':t==='t'?'זמן':t==='c'?'קרדיו':'חימום'}</span></div>
   ${e.tip?`<div class="tip">💡 ${esc(e.tip)}</div>`:''}
+  ${en.sug?`<div class="sug">🎯 <b>היום:</b> ${esc(en.sug)}</div>`:''}
   <div class="set mu" style="margin-bottom:0"><span></span>${t==='s'?'<span>ק"ג</span><span>חזרות</span><span>קודם</span>':t==='t'?'<span>שניות</span><span></span><span>קודם</span>':t==='c'?'<span>דקות</span><span>ק"מ</span><span>קצב</span>':'<span>דקות</span><span></span><span></span>'}<span></span></div>`;
+  const cur=en.sets.findIndex(s=>!s.done);
   en.sets.forEach((s,j)=>{
     const p=prev&&prev[Math.min(j,prev.length-1)];
     const side=t==='s'||t==='t'?(p?fmtSet(e,p):'—'):t==='c'?(s.min>0&&s.km>0?(s.min/s.km).toFixed(1)+'/ק"מ':'—'):'';
-    h+=`<div class="set ${s.done?'done':''}"><span class="n" ondblclick="delSet(${i},${j})" title="הקשה כפולה למחיקה">${j+1}</span>
+    h+=`<div class="set ${s.done?'done':''}"><button class="n" onclick="delSet(${i},${j})" aria-label="מחק סט ${j+1}">${j+1}<small>✕</small></button>
     ${t==='s'?`<input type="number" inputmode="decimal" step="0.5" value="${s.w}" onchange="setVal(${i},${j},'w',this.value)">
     <input type="number" inputmode="numeric" value="${s.r}" onchange="setVal(${i},${j},'r',this.value)">`:
     t==='t'?`<input type="number" inputmode="numeric" value="${s.sec}" onchange="setVal(${i},${j},'sec',this.value)"><span></span>`:
     t==='c'?`<input type="number" inputmode="decimal" value="${s.min}" onchange="setVal(${i},${j},'min',this.value);render()">
     <input type="number" inputmode="decimal" step="0.1" value="${s.km}" onchange="setVal(${i},${j},'km',this.value);render()">`:
     `<input type="number" inputmode="decimal" value="${s.min}" onchange="setVal(${i},${j},'min',this.value)"><span></span>`}
-    <span class="prev">${side}${s.pr?'<div class="pr">🏆 שיא</div>':''}</span>
+    <span class="prev">${side}${s.feel?` <span class="fe">${FEEL[s.feel]}</span>`:''}${s.pr?'<div class="pr">🏆 שיא</div>':''}</span>
     <button class="chk" onclick="toggleSet(${i},${j})">✔</button></div>`;
+    // כפתורי +/− לסט הבא שעוד לא בוצע, כדי לא לפתוח מקלדת
+    if(j===cur&&t==='s')h+=`<div class="steps"><button onclick="bump(${i},${j},'w',-2.5)">−2.5</button><button onclick="bump(${i},${j},'w',2.5)">+2.5 ק"ג</button><span class="grow"></span><button onclick="bump(${i},${j},'r',-1)">−1</button><button onclick="bump(${i},${j},'r',1)">+1 חזרה</button></div>`;
+    if(j===cur&&t==='t')h+=`<div class="steps"><button onclick="bump(${i},${j},'sec',-5)">−5</button><button onclick="bump(${i},${j},'sec',5)">+5 שנ׳</button></div>`;
   });
   if(en.fb)h+=`<div class="fb ${en.fb.t}">${esc(en.fb.m)}</div>`;
+  if(en.ask!=null&&en.sets[en.ask]&&en.sets[en.ask].done)h+=`<div class="mu">איך הרגיש סט ${en.ask+1}?</div><div class="feel">${[1,2,3].map(f=>`<button onclick="setFeel(${i},${en.ask},${f})">${FEEL[f]} ${['','קל','מאתגר','עד הקצה'][f]}</button>`).join('')}</div>`;
   return h+`<button class="sm" onclick="addSet(${i})">+ הוסף סט</button></div>`;
 }
 function vActive(){
   const c=S.current,all=c.entries.flatMap(e=>e.sets),done=all.filter(s=>s.done).length,pct=all.length?Math.round(done/all.length*100):0;
   const warmDone=c.entries.some(e=>ph(e)==='w'&&e.sets.some(s=>s.done)),mainStarted=c.entries.some(e=>ph(e)==='m'&&e.sets.some(s=>s.done));
-  let h=`<div class="row" style="margin:18px 0 6px"><input value="${esc(c.name)}" style="font-weight:700" onchange="S.current.name=this.value.trim()||'אימון';save()" title="סוג האימון (ניתן לעריכה)"><span class="mu" style="white-space:nowrap">${done}/${all.length} סטים</span></div><div class="bar"><i style="width:${pct}%"></i></div>`;
-  if(mainStarted&&!warmDone)h+=`<div class="banner"><b>🔥 עוד לא עשית חימום</b><div class="mu">חימום של 5–10 דקות מפחית סיכון לפציעה ומשפר ביצועים. אפשר להוסיף אותו מהרשימה למטה.</div></div>`;
+  let h=c.editId?`<div class="banner" style="margin-top:14px"><b>✏️ עריכת אימון מ-${fmtDate(c.start)}</b><div class="mu">תקן ערכים, הוסף או מחק סטים, ולחץ "שמור שינויים"</div></div>`:c.deload?`<div class="banner" style="margin-top:14px"><b>🧘 שבוע הקלה</b><div class="mu">המשקלים המומלצים מופחתים בכ-10% ויש פחות סטים. בשבוע הבא חוזרים להתקדם.</div></div>`:'';
+  h+=`<div class="row" style="margin:18px 0 6px"><input value="${esc(c.name)}" style="font-weight:700" onchange="S.current.name=this.value.trim()||'אימון';save()" title="סוג האימון (ניתן לעריכה)"><span class="mu" style="white-space:nowrap">${done}/${all.length} סטים</span></div><div class="bar"><i style="width:${pct}%"></i></div>`;
+  if(mainStarted&&!warmDone&&!c.editId)h+=`<div class="banner"><b>🔥 עוד לא עשית חימום</b><div class="mu">חימום של 5–10 דקות מפחית סיכון לפציעה ומשפר ביצועים. אפשר להוסיף אותו מהרשימה למטה.</div></div>`;
   h+=`<h2>🔥 חימום</h2>`;
   const w=c.entries.map((en,i)=>ph(en)==='w'?entryCard(en,i):'').join('');
   h+=w||`<div class="empty" style="padding:8px">אין תרגילי חימום</div>`;
-  h+=`<select onchange="addExerciseToCurrent(this.value,'w');this.value=''"><option value="">+ הוסף חימום…</option>${groupedOpts(()=>true,'חימום וניידות')}</select>`;
+  h+=`<button class="addbtn" onclick="openPicker('current','w')">🔍 + הוסף חימום…</button>`;
   h+=`<h2>💪 אימון</h2>`+c.entries.map((en,i)=>ph(en)==='m'?entryCard(en,i):'').join('');
-  h+=`<select onchange="addExerciseToCurrent(this.value,'m');this.value=''"><option value="">+ הוסף תרגיל…</option>${groupedOpts(e=>e.type!=='w')}</select>
-  <div class="row" style="margin-top:12px"><button class="pri grow" style="padding:14px" onclick="finishWorkout()">סיים אימון</button><button class="dg" onclick="cancelWorkout()">בטל</button></div>`;
+  h+=`<button class="addbtn" onclick="openPicker('current','m')">🔍 + הוסף תרגיל…</button>
+  <div class="row" style="margin-top:12px"><button class="pri grow" style="padding:14px" onclick="finishWorkout()">${c.editId?'שמור שינויים':'סיים אימון'}</button><button class="dg" onclick="cancelWorkout()">${c.editId?'בטל עריכה':'בטל'}</button></div>`;
   return h;
 }
 function vPlans(){
@@ -644,28 +755,69 @@ function vPlans(){
     <input value="${esc(p.name)}" onchange="planName('${p.id}',this.value)">
     <h2>ימים קבועים</h2><div class="chips">${DAYS.map((d,i)=>`<span class="chip ${p.days.includes(i)?'on':''}" onclick="planDay('${p.id}',${i})">${d}</span>`).join('')}</div>
     <h2>🔥 חימום</h2>${list('w')}
-    <select style="margin-top:8px" onchange="planAdd('${p.id}',this.value,'w')"><option value="">+ הוסף חימום…</option>${groupedOpts(()=>true,'חימום וניידות')}</select>
+    <button class="addbtn" style="margin-top:8px" onclick="openPicker('${p.id}','w')">🔍 + הוסף חימום…</button>
     <h2>💪 אימון</h2>${list('m')}
-    <select style="margin-top:8px" onchange="planAdd('${p.id}',this.value,'m')"><option value="">+ הוסף תרגיל…</option>${groupedOpts(e=>e.type!=='w')}</select>
+    <button class="addbtn" style="margin-top:8px" onclick="openPicker('${p.id}','m')">🔍 + הוסף תרגיל…</button>
     </div><div class="row"><button class="pri grow" onclick="openPlan=null;render()">סיום</button><button class="dg" onclick="planRemove('${p.id}')">מחק תוכנית</button></div>`;
   }
   return `<h1>תוכניות</h1>`+(S.plans.map(p=>`<div class="card row sp" onclick="openPlan='${p.id}';render()"><div><b>${esc(p.name)}</b><div class="mu">${p.days.map(d=>DAYS[d]).join(' ')||'ללא ימים קבועים'} · ${p.items.filter(i=>i.ph==='w').length} חימום · ${p.items.filter(i=>i.ph!=='w').length} אימון</div></div><span class="mu">‹</span></div>`).join('')||'<div class="empty">צור תוכנית ראשונה, למשל "דחיפה" או "רגליים"</div>')
   +`<button class="pri" style="width:100%" onclick="planNew()">+ תוכנית חדשה</button>
   <h2>ספריית התרגילים (${S.exercises.length})</h2>`+CAT_ORDER.map(g=>{
     const l=S.exercises.filter(e=>(e.grp||'אחר')===g);
-    return l.length?`<details class="card"><summary><b>${g}</b> <span class="mu">· ${l.length}</span></summary><div class="chips" style="margin-top:8px">${l.map(e=>`<span class="chip">${esc(e.name)} ${e.type==='c'?'🏃':e.type==='w'?'🔥':e.type==='t'?'⏱':''}${g==='אחר'?` <a onclick="exDel('${e.id}')" style="color:var(--dg);cursor:pointer">✕</a>`:''}</span>`).join('')}</div></details>`:'';
+    return l.length?`<details class="card"><summary><b>${g}</b> <span class="mu">· ${l.length}</span></summary><div class="chips" style="margin-top:8px">${l.map(e=>`<span class="chip">${esc(e.name)} ${e.type==='c'?'🏃':e.type==='w'?'🔥':e.type==='t'?'⏱':''}${e.custom||g==='אחר'?` <a onclick="exDel('${e.id}')" style="color:var(--dg);cursor:pointer">✕</a>`:''}</span>`).join('')}</div></details>`:'';
   }).join('')+`
-  <div class="card" style="margin-top:10px"><b>הוסף תרגיל משלך</b><div class="row" style="margin-top:8px"><input id="nex" placeholder="שם תרגיל חדש"><select id="nty" style="width:100px"><option value="s">כוח</option><option value="t">זמן (שניות)</option><option value="c">קרדיו</option><option value="w">חימום</option></select></div>
-  <input id="ntip" style="margin:8px 0" placeholder="טיפ או הנחיות למכשיר (לא חובה)"><button onclick="exNew()">הוסף תרגיל</button></div>`;
+  <button style="width:100%;margin-top:10px" onclick="openPicker(null,'m',true)">✏️ הוסף תרגיל משלך</button>`;
+}
+/* ---------- בחירת תרגיל: חיפוש, רשימה לפי קבוצות, וטופס לתרגיל חדש ----------
+   target: 'current' (האימון הפעיל), מזהה תוכנית, או null (רק הוספה לספרייה) */
+let modal=null;
+function openPicker(target,phase,form){modal={target,phase,q:'',form:!!form};renderModal();setTimeout(()=>{const i=document.getElementById(form?'fn':'pq');i&&i.focus()},60)}
+function closeModal(){modal=null;renderModal()}
+function renderModal(){
+  const m=document.getElementById('modal');
+  if(!modal){m.classList.remove('show');m.innerHTML='';return}
+  m.classList.add('show');
+  m.innerHTML=`<div class="sheet">${modal.form?exForm():`<div class="top row"><input id="pq" type="search" placeholder="🔍 חיפוש תרגיל או קבוצת שרירים" value="${esc(modal.q)}" oninput="modal.q=this.value;pickList()"><button onclick="closeModal()">סגור</button></div><div id="plist"></div>`}</div>`;
+  if(!modal.form)pickList();
+}
+const typeIcon=t=>({t:'⏱',c:'🏃',w:'🔥'})[t]||'';
+function pickList(){
+  const q=modal.q.trim().toLowerCase(),warm=modal.phase==='w',filt=warm?()=>true:e=>e.type!=='w';
+  const order=warm?['חימום וניידות',...CAT_ORDER.filter(g=>g!=='חימום וניידות')]:CAT_ORDER;
+  let h=`<button class="pick new" onclick="modal.form=true;renderModal()">✏️ תרגיל חדש${q?`: "${esc(modal.q.trim())}"`:''}</button>`;
+  order.forEach(g=>{
+    const l=S.exercises.filter(e=>(e.grp||'אחר')===g&&filt(e)&&(!q||e.name.toLowerCase().includes(q)||g.includes(q)));
+    if(l.length)h+=`<div class="mu pg">${g}</div>`+l.map(e=>`<button class="pick" onclick="pickEx('${e.id}')">${esc(e.name)} ${typeIcon(e.type)}</button>`).join('');
+  });
+  document.getElementById('plist').innerHTML=h;
+}
+function pickEx(id){
+  const {target,phase}=modal;modal=null;renderModal();
+  if(target==='current')addExerciseToCurrent(id,phase);else if(target)planAdd(target,id,phase);else render();
+}
+function exForm(){
+  const d=modal.phase==='w'?'w':'s';
+  return `<h2 style="margin-top:0">תרגיל חדש</h2>
+  <input id="fn" placeholder="שם התרגיל" value="${esc(modal.q.trim())}">
+  <div class="grid2"><select id="fty">${[['s','כוח (משקל וחזרות)'],['t','זמן (שניות)'],['c','קרדיו (זמן ומרחק)'],['w','חימום (זמן)']].map(([v,l])=>`<option value="${v}" ${v===d?'selected':''}>${l}</option>`).join('')}</select>
+  <select id="fgr">${CAT_ORDER.map(g=>`<option ${g===(d==='w'?'חימום וניידות':'אחר')?'selected':''}>${g}</option>`).join('')}</select></div>
+  <input id="ftip" placeholder="טיפ או הנחיות למכשיר (לא חובה)">
+  <div class="row" style="margin-top:10px"><button class="pri grow" onclick="saveExForm()">הוסף</button><button onclick="${modal.target===null?'closeModal()':'modal.form=false;renderModal()'}">חזרה</button></div>`;
+}
+function saveExForm(){
+  const n=document.getElementById('fn').value.trim();if(!n)return toast('הזן שם תרגיל');
+  if(S.exercises.some(e=>e.name===n))return toast('כבר יש תרגיל בשם הזה');
+  const e={id:uid(),name:n,type:document.getElementById('fty').value,tip:document.getElementById('ftip').value.trim(),grp:document.getElementById('fgr').value,custom:true};
+  S.exercises.push(e);save();
+  if(modal.target)pickEx(e.id);else{closeModal();render();toast(`"${n}" נוסף לספרייה`)}
 }
 function planNew(){const p={id:uid(),name:'תוכנית חדשה',days:[],items:[]};S.plans.push(p);openPlan=p.id;save();render()}
 const P=id=>S.plans.find(p=>p.id===id);
 function planName(id,v){P(id).name=v||'תוכנית';save()}
 function planDay(id,d){const p=P(id);p.days=p.days.includes(d)?p.days.filter(x=>x!==d):[...p.days,d].sort();save();render()}
-function planAdd(id,x,phase){if(!x)return;if(x==='__new'){x=quickAdd(phase);if(!x){render();return}}P(id).items.push({ex:x,ph:phase});save();render()}
+function planAdd(id,x,phase){if(!x)return;P(id).items.push({ex:x,ph:phase});save();render()}
 function planDel(id,i){P(id).items.splice(i,1);save();render()}
 function planRemove(id){if(confirm('למחוק את התוכנית?')){S.plans=S.plans.filter(p=>p.id!==id);openPlan=null;save();render()}}
-function exNew(){const n=document.getElementById('nex').value.trim();if(!n)return;S.exercises.push({id:uid(),name:n,type:document.getElementById('nty').value,tip:document.getElementById('ntip').value.trim(),grp:'אחר'});save();render()}
 function exDel(id){
   if(S.plans.some(p=>p.items.some(i=>i.ex===id))||S.workouts.some(w=>w.entries.some(e=>e.exId===id)))return toast('התרגיל בשימוש בתוכנית או בהיסטוריה, אי אפשר למחוק');
   S.exercises=S.exercises.filter(e=>e.id!==id);save();render();
@@ -676,6 +828,10 @@ function vProgress(){
   if(!histEx||!strength.find(e=>e.id===histEx))histEx=strength[0]&&strength[0].id;
   let h=`<h1>התקדמות</h1>`;
   if(!S.workouts.length)return h+`<div class="empty">עוד אין אימונים. סיים אימון ראשון והגרפים יופיעו כאן 📈</div>`;
+  // נפח שבועי: סטים לכל קבוצת שרירים מול היעד של המטרה שבחרת
+  const g=goalCfg(),[lo,hi]=g.vol,vs=weeklySets(startOfWeek(Date.now()));
+  const groups=['חזה','גב','כתפיים','ידיים','רגליים','ישבן','בטן וליבה',...Object.keys(vs).filter(k=>!['חזה','גב','כתפיים','ידיים','רגליים','ישבן','בטן וליבה'].includes(k))];
+  h+=`<div class="card"><b>נפח השבוע</b><div class="mu" style="margin-bottom:6px">סטים לכל קבוצת שרירים. היעד ל${g.l}: ${lo}–${hi} סטים בשבוע</div>${groups.map(k=>{const n=vs[k]||0;return `<div class="vol"><span>${k}</span><div class="bar"><i class="${n<lo?'lo':n>hi?'hi':''}" style="width:${Math.min(100,n/hi*100)}%"></i></div><span class="mu">${n}/${lo}${n>=lo&&n<=hi?' ✔':''}</span></div>`}).join('')}</div>`;
   if(histEx){
     // תרגיל עם משקל: 1RM משוער. משקל גוף בלבד: מקסימום חזרות. תרגיל זמן: מקסימום שניות
     const he=ex(histEx),weighted=he.type==='s'&&S.workouts.some(w=>w.entries.some(e=>e.exId===histEx&&ph(e)==='m'&&e.sets.some(s=>!isBW(s))));
@@ -692,7 +848,7 @@ function vProgress(){
     <div class="mu">💪 ${main.map(line).join(' · ')}</div>
     ${vol?`<div class="mu">נפח כולל: ${Math.round(vol).toLocaleString()} ק"ג</div>`:''}
     ${w.verdict?`<div class="fb ${w.verdict.t}">${esc(w.verdict.m)}</div>`:''}
-    <button class="sm dg" onclick="delWorkout('${w.id}')">מחק</button></div>`}).join('');
+    <div class="row"><button class="sm" onclick="editWorkout('${w.id}')">✏️ ערוך</button><button class="sm dg" onclick="delWorkout('${w.id}')">מחק</button></div></div>`}).join('');
   return h;
 }
 function delWorkout(id){if(confirm('למחוק את האימון?')){S.workouts=S.workouts.filter(w=>w.id!==id);save();render()}}
@@ -710,6 +866,8 @@ function vSettings(){
   return `<h1>הגדרות</h1><div class="card">
   <div class="row sp"><span>זמן מנוחה (שניות)</span><input type="number" style="width:90px" value="${S.settings.rest}" onchange="S.settings.rest=+this.value||90;save()"></div><br>
   <div class="row sp"><span>יעד אימונים בשבוע</span><input type="number" style="width:90px" value="${S.settings.goal}" onchange="S.settings.goal=+this.value||3;save()"></div><br>
+  <div class="row sp"><span>מטרה<div class="mu">קובעת את טווח החזרות ואת יעד הנפח</div></span><select style="width:150px" onchange="S.settings.goalType=this.value;save();render()">${Object.entries(GOALS).map(([k,v])=>`<option value="${k}" ${k===(S.settings.goalType||'hyp')?'selected':''}>${v.l} (${v.min}–${v.max})</option>`).join('')}</select></div><br>
+  <div class="row sp"><span>שבוע הקלה<div class="mu">משקל מופחת ופחות סטים, להתאוששות</div></span><select style="width:150px" onchange="S.settings.deload=+this.value;save();render()">${[[4,'כל שבוע רביעי'],[5,'כל שבוע חמישי'],[6,'כל שבוע שישי'],[0,'כבוי']].map(([v,l])=>`<option value="${v}" ${v===(S.settings.deload??4)?'selected':''}>${l}</option>`).join('')}</select></div><br>
   <label class="row sp"><span>צפצוף בסוף המנוחה</span><input type="checkbox" style="width:auto" ${S.settings.sound!==false?'checked':''} onchange="S.settings.sound=this.checked;save()"></label><br>
   <label class="row sp"><span>מסך דולק בזמן אימון<div class="mu">כשהמסך כבוי הטלפון עוצר את טיימר המנוחה</div></span><input type="checkbox" style="width:auto" ${S.settings.wake!==false?'checked':''} onchange="S.settings.wake=this.checked;save();syncWakeLock()"></label></div>
   <h2>📅 יומן: חגים וחופשות</h2><div class="card">
