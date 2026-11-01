@@ -65,7 +65,7 @@ svg{width:100%;height:auto;display:block}
 .feel{display:flex;gap:6px;margin:4px 0 8px}.feel button{flex:1;padding:8px 4px;font-size:13px}.feel button.on{background:var(--ac);color:#06210f;font-weight:700}
 .fe{font-size:13px}
 .addbtn{width:100%;text-align:start;color:var(--mu)}
-#modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:20;display:none;align-items:flex-end;justify-content:center}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:25;display:none;align-items:flex-end;justify-content:center}
 #modal.show{display:flex}
 #modal .sheet{background:var(--bg);width:100%;max-width:640px;max-height:85vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
 #modal .top{position:sticky;top:-16px;background:var(--bg);padding:4px 0 8px;z-index:1}
@@ -103,6 +103,36 @@ body.quiz,body.playing{padding-bottom:16px}
 .wkgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin:6px 0}
 .wk{border-radius:10px;padding:6px 2px;text-align:center;font-size:11px;background:var(--card2);min-height:46px}
 .wk.on{background:var(--ac);color:#06210f;font-weight:700}.wk.rest{opacity:.45}
+/* כרטיס הסבר לתרגיל */
+.xn{cursor:pointer}.xn .info{font-size:13px;opacity:.7}a.xn{color:var(--bl)}
+ol.how,ul.errs{margin:4px 0 8px;padding-inline-start:22px}ol.how li,ul.errs li{margin:6px 0;line-height:1.5}
+ul.errs li::marker{content:'⚠️ '}
+.lvl{display:flex;flex-direction:column;gap:2px;background:var(--card);border-radius:12px;padding:10px 12px;margin:6px 0;border:2px solid transparent}
+.lvl.me{border-color:var(--ac)}.lvl b{font-size:14px}.lvl span{font-size:14px;color:var(--mu)}
+.lnk{display:inline-block;background:var(--card);color:var(--tx);text-decoration:none;border-radius:99px;padding:7px 12px;font-size:14px}
+/* נגן דינמי: כניסה, פעימה, הפסקה נושמת, מאמן מתחלף ומד קצב */
+@keyframes plIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.pl.anim>*{animation:plIn .42s cubic-bezier(.2,.8,.2,1) both}
+.pl.anim>*:nth-child(2){animation-delay:.04s}.pl.anim>*:nth-child(3){animation-delay:.08s}.pl.anim>*:nth-child(4){animation-delay:.12s}
+.pl.anim>*:nth-child(5){animation-delay:.16s}.pl.anim>*:nth-child(6){animation-delay:.2s}.pl.anim>*:nth-child(n+7){animation-delay:.24s}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.ring.pulse{animation:pulse .5s ease-in-out infinite}
+.pl.rest{--rh:210;background:linear-gradient(160deg,hsl(var(--rh) 55% 16%),var(--bg) 55%,hsl(calc(var(--rh) + 50) 45% 13%));background-size:220% 220%;animation:grad 12s ease infinite}
+@keyframes grad{0%,100%{background-position:0% 0%}50%{background-position:100% 100%}}
+.breath{position:absolute;inset:14px;border-radius:50%;background:radial-gradient(circle,hsla(var(--rh),80%,62%,.38),transparent 68%);animation:breath 8s ease-in-out infinite}
+@keyframes breath{0%,100%{transform:scale(.72);opacity:.5}50%{transform:scale(1.04);opacity:1}}
+.coach{min-height:40px;text-align:center;font-weight:600;font-size:15px;padding:6px 10px;transition:opacity .35s,transform .35s}.coach.fade{opacity:0;transform:translateY(6px)}
+.pacerbox{display:flex;justify-content:center;align-items:center;gap:18px;margin:4px 0}
+.pacer{position:relative;height:110px;width:46px;border-radius:24px;background:var(--card2);overflow:hidden}
+.pacer i{position:absolute;left:6px;top:6px;width:34px;height:34px;border-radius:50%;background:var(--ac);box-shadow:0 0 14px rgba(74,222,128,.7);will-change:transform}
+.plab{font-size:24px;font-weight:800}
+.pl .pri.big.go{animation:pulse .9s ease-in-out infinite;box-shadow:0 0 0 4px rgba(74,222,128,.35)}
+.nextc{border-inline-start:4px solid var(--bl)}
+canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:40}
+ul.tips{margin:6px 0;padding-inline-start:20px}ul.tips li{margin:6px 0;line-height:1.5}
+a.applnk{display:block;color:var(--tx);text-decoration:none}
+nav button{font-size:11px}
+@media (prefers-reduced-motion:reduce){.pl.anim>*,.ring.pulse,.pl.rest,.breath,.pl .pri.big.go{animation:none}}
 </style>
 </head>
 <body>
@@ -271,6 +301,80 @@ const CATALOG=[
 ]}
 ];
 const CAT_ORDER=[...CATALOG.map(c=>c.g),'אחר'];
+/* ---------- הסבר מפורט לתרגילים (למתחילים) ----------
+   I(שם, שם באנגלית, שרירים, קושי 1-3, שלבי ביצוע, טעויות נפוצות, גרסה קלה, גרסה קשה) */
+const INFO={};
+const I=(n,en,m,l,how,err,ez,hd)=>INFO[n]={en,m,l,how,err,ez,hd};
+I('לחיצת חזה','Barbell bench press','חזה, כתף קדמית, תלת-ראשי',2,['שכב על הספסל כשהעיניים מתחת למוט, וכפות הרגליים יציבות על הרצפה','אחוז מעט רחב מהכתפיים, צבוט שכמות יחד ולמטה, והורד את המוט בשליטה לאמצע החזה','דחוף למעלה ומעט לאחור לכיוון הכתפיים, בלי לנעול את המרפקים בכוח'],['מרפקים פתוחים לצדדים ב-90°, שמעמיסים על הכתף','הקפצת המוט מהחזה או הרמת הישבן מהספסל'],'לחיצת חזה במכונה','לחיצת חזה בשיפוע עליון');
+I('לחיצת חזה בשיפוע עליון','Incline bench press','חזה עליון, כתף קדמית, תלת-ראשי',2,['כוון ספסל לשיפוע של 30° בערך','הורד את המוט או הדמבלים לחלק העליון של החזה, מרפקים בזווית של כ-45°','לחץ למעלה בשליטה והשאר את השכמות צמודות לספסל'],['שיפוע גבוה מדי, שהופך את התרגיל ללחיצת כתפיים','הרמת הכתפיים לאוזניים'],'לחיצת חזה בדמבלים','לחיצת חזה');
+I('לחיצת חזה בדמבלים','Dumbbell bench press','חזה, כתף קדמית, תלת-ראשי',2,['שב עם הדמבלים על הירכיים, ושכב לאחור כשהם עולים איתך לגובה החזה','הורד לאט עד מתיחה נעימה בחזה, מרפקים מעט מתחת לקו הכתפיים','לחץ למעלה והקרב מעט את הדמבלים בנקודה העליונה'],['ירידה עמוקה מדי שמותחת את הכתף','דמבלים שמתנדנדים בלי שליטה'],'לחיצת חזה במכונה','לחיצת חזה');
+I('לחיצת חזה במכונה','Machine chest press','חזה, כתף קדמית, תלת-ראשי',1,['כוון את המושב כך שהידיות יהיו בגובה אמצע החזה','גב ושכמות צמודים לכרית, אחיזה יציבה','לחץ קדימה וחזור לאט עד שהידיות כמעט נוגעות בעצירה'],['כתפיים שנשלפות קדימה בסוף התנועה','חזרה מהירה שמקפיצה את המשקולות'],'שכיבות סמיכה בשיפוע (ידיים על ספסל)','לחיצת חזה בדמבלים');
+I('מקבילים (דיפס)','Chest dips','חזה תחתון, תלת-ראשי, כתף קדמית',3,['תמוך את עצמך על המקבילים, ידיים ישרות','הטה את הגוף מעט קדימה ורד לאט עד שהמרפקים בזווית של 90°','דחוף חזרה למעלה בלי להתנדנד'],['ירידה עמוקה מדי שמעמיסה על הכתפיים','כתפיים שעולות לאוזניים'],'מקבילים על כיסא','מקבילים (דיפס)');
+I('פרפר במכונה (Pec Deck)','Pec deck fly','חזה',1,['כוון מושב כך שהמרפקים יהיו בגובה הכתפיים','מרפקים כפופים מעט, קרב את הידיים לפניך','החזק שנייה באמצע וחזור לאט עד מתיחה בחזה'],['פתיחה רחבה מדי שמותחת את הכתף','שימוש בתנופה'],'מעבר בכבל (Cable Crossover)','פרפר בדמבלים');
+I('פרפר בדמבלים','Dumbbell fly','חזה',2,['שכב על ספסל עם דמבלים מעל החזה, מרפקים מעט כפופים','פתח את הידיים בקשת רחבה עד מתיחה בחזה','סגור בחזרה באותה קשת, כאילו אתה מחבק עץ'],['יישור המרפקים, שהופך את התרגיל ללחיצה','משקל כבד מדי שמושך את הכתף'],'פרפר במכונה (Pec Deck)','מעבר בכבל (Cable Crossover)');
+I('מעבר בכבל (Cable Crossover)','Cable crossover','חזה',2,['כוון את הגלגלות גבוה, צעד קדימה לייצוב','משוך את הידיות בקשת למטה ולמרכז','החזק רגע כשהידיים נפגשות, וחזור לאט'],['הטיית גוף קדימה מוגזמת','כפיפת מרפקים שמשתנה במהלך התנועה'],'פרפר במכונה (Pec Deck)','פרפר בדמבלים');
+I('שכיבות סמיכה','Push-up','חזה, תלת-ראשי, כתף קדמית, ליבה',1,['ידיים מעט רחבות מהכתפיים, גוף ישר מהראש עד העקבים','רד עד שהחזה כמעט נוגע ברצפה, מרפקים בזווית של כ-45°','דחוף למעלה ושמור על בטן מכווצת'],['אגן ששוקע או עולה','ראש שנופל קדימה לפני החזה'],'שכיבות סמיכה בשיפוע (ידיים על ספסל)','שכיבות סמיכה יהלום');
+I('שכיבות סמיכה על ברכיים','Knee push-up','חזה, תלת-ראשי, כתף קדמית',1,['ברכיים על הרצפה, ידיים מעט רחבות מהכתפיים','גוף ישר מהברכיים עד הראש, בלי לכופף מהמותניים','רד לאט ודחוף למעלה'],['ישבן גבוה שמקצר את הטווח','טווח חלקי'],'שכיבות סמיכה בשיפוע (ידיים על ספסל)','שכיבות סמיכה');
+I('שכיבות סמיכה בשיפוע (ידיים על ספסל)','Incline push-up','חזה, תלת-ראשי, כתף קדמית',1,['ידיים על ספסל או שולחן יציב, גוף ישר','רד עם החזה לקצה המשטח','דחוף חזרה, ככל שהמשטח נמוך יותר התרגיל קשה יותר'],['משטח לא יציב','אגן ששוקע'],'שכיבות סמיכה על ברכיים','שכיבות סמיכה');
+I('שכיבות סמיכה יהלום','Diamond push-up','תלת-ראשי, חזה פנימי',2,['ידיים צמודות מתחת לחזה, אגודלים ואצבעות יוצרים יהלום','רד כשהמרפקים צמודים לגוף','דחוף למעלה בשליטה'],['מרפקים שבורחים החוצה','גב תחתון שוקע'],'שכיבות סמיכה','מקבילים (דיפס)');
+I('מתח','Pull-up','גב רחב, דו-ראשי, אמות',3,['תלה במוט באחיזה מעט רחבה מהכתפיים','התחל בהורדת השכמות, ומשוך את החזה לכיוון המוט','רד לאט עד יישור מלא של הידיים'],['נדנוד ובעיטות','חצי טווח בלי ירידה מלאה'],'פולי עליון (Lat Pulldown)','מתח באחיזה צרה (Chin-up)');
+I('פולי עליון (Lat Pulldown)','Lat pulldown','גב רחב, דו-ראשי',1,['ירכיים נעולות מתחת לכרית, אחיזה רחבה','הישען מעט לאחור ומשוך את המוט לעצמות הבריח','חזור לאט עד מתיחה בגב'],['משיכה מאחורי הראש','זריקת הגוף לאחור כדי להזיז את המשקל'],'חתירה בכבל בישיבה','מתח');
+I('חתירה בכבל בישיבה','Seated cable row','גב אמצעי, גב רחב, דו-ראשי',1,['שב עם ברכיים כפופות מעט וגב ישר','משוך את הידית לטבור וצבוט שכמות','חזור לאט, ותן לכתפיים להימתח קדימה בלי לעגל את הגב'],['התנדנדות של כל הגוף','משיכה עם הזרועות בלבד'],'חתירה במכונת כוח','חתירה במוט');
+I('חתירה במוט','Barbell row','גב אמצעי, גב רחב, גב תחתון',2,['רגליים ברוחב אגן, ברכיים כפופות מעט, גוף נוטה לזווית של כ-45°','משוך את המוט לכיוון הטבור, מרפקים צמודים לגוף','הורד לאט בלי לעגל את הגב'],['גב מעוגל','הזדקפות בכל חזרה'],'חתירה בדמבל','חתירת T-Bar');
+I('חתירה בדמבל','One-arm dumbbell row','גב רחב, גב אמצעי, דו-ראשי',1,['יד וברך על הספסל, גב ישר ומקביל לרצפה','משוך את הדמבל לכיוון הירך, מרפק צמוד לגוף','הורד לאט עד מתיחה מלאה'],['סיבוב הגו כדי להרים יותר משקל','משיכה לכתף במקום לירך'],'חתירה במכונת כוח','חתירה במוט');
+I('חתירה במכונת כוח','Machine row','גב אמצעי, גב רחב',1,['חזה צמוד לכרית, אחיזה נוחה','משוך לאחור וצבוט שכמות','חזור לאט'],['הרמת הכתפיים','משיכה בתנופה'],'חתירה בכבל בישיבה','חתירה בדמבל');
+I('דדליפט','Deadlift','ירך אחורית, ישבן, גב תחתון, כל הגוף',3,['המוט מעל אמצע כף הרגל, אחיזה ברוחב הכתפיים, גב ישר','דחוף את הרצפה ברגליים, והמוט צמוד לשוקיים ולירכיים','נעל ישבן למעלה בלי להישען לאחור, והורד באותו מסלול'],['גב מעוגל','מוט שמתרחק מהגוף'],'דדליפט רומני','דדליפט');
+I('פייס פול (Face Pull)','Face pull','כתף אחורית, גב עליון',1,['חבל בגלגלת בגובה הפנים','משוך לכיוון הפנים ופתח את הידיים לצדדים','החזק שנייה וחזור לאט'],['משקל כבד שמכריח להישען לאחור','מרפקים נמוכים'],'הרמות אחוריות','פייס פול (Face Pull)');
+I('חתירה הפוכה מתחת לשולחן','Inverted row','גב, דו-ראשי, ליבה',2,['שכב מתחת לשולחן יציב ואחוז בקצה','גוף ישר מהעקבים עד הראש, משוך את החזה לשולחן','רד לאט, ככל שהרגליים כפופות יותר התרגיל קל יותר'],['אגן ששוקע','שולחן לא יציב'],'סופרמן','מתח');
+I('סופרמן','Superman','גב תחתון, ישבן',1,['שכב על הבטן, ידיים ישרות קדימה','הרם יחד ידיים, חזה ורגליים מעט מהרצפה','החזק 2 שניות ורד לאט'],['הרמת הראש למעלה שמעמיסה על הצוואר','תנועה מהירה בלי החזקה'],'ציפור-כלב (Bird Dog)','הרמות גב (היפראקסטנשן)');
+I('הרמות גב (היפראקסטנשן)','Back extension','גב תחתון, ישבן, ירך אחורית',1,['כוון את הכרית לגובה האגן','רד מהמותניים עם גב ישר','עלה עד קו ישר עם הרגליים, לא מעבר'],['קשת יתר בסוף התנועה','תנופה'],'סופרמן','גוד מורנינג (Good Morning)');
+I('לחיצת כתפיים','Overhead press','כתפיים, תלת-ראשי, ליבה',2,['עמוד עם המוט על החזה העליון, ישבן ובטן מכווצים','לחץ את המוט ישר למעלה, והזז את הראש מעט לאחור כדי שהמוט יעבור','נעל מעל הראש והורד בשליטה'],['קשת בגב התחתון','לחיצה קדימה במקום מעל הראש'],'לחיצת כתפיים בדמבלים','לחיצת ארנולד');
+I('לחיצת כתפיים בדמבלים','Dumbbell shoulder press','כתפיים, תלת-ראשי',2,['שב עם גב צמוד למשענת, דמבלים בגובה הכתפיים','לחץ למעלה בלי להצמיד את הדמבלים','הורד לאט עד גובה האוזניים'],['קשת בגב','מרפקים שנפתחים לאחור לגמרי'],'לחיצת כתפיים במכונה','לחיצת כתפיים');
+I('לחיצת ארנולד','Arnold press','כתפיים (כל הראשים), תלת-ראשי',2,['התחל עם כפות הידיים מולך בגובה הסנטר','סובב את כפות הידיים החוצה תוך כדי לחיצה למעלה','חזור באותו סיבוב הפוך'],['משקל כבד שמונע סיבוב מלא','קשת בגב'],'לחיצת כתפיים בדמבלים','לחיצת כתפיים');
+I('הרמות צד','Lateral raise','כתף צידית',1,['עמוד עם דמבלים לצד הגוף, מרפקים מעט כפופים','הרם לצדדים עד גובה הכתף, כאילו אתה שופך כוס','הורד לאט, 2-3 שניות'],['תנופה מהגוף','הרמת הכתפיים לאוזניים'],'הרמות צד','לחיצת ארנולד');
+I('הרמות אחוריות','Rear delt fly','כתף אחורית, גב עליון',1,['התכופף קדימה מהמותניים עם גב ישר','הרם את הדמבלים לצדדים עם מרפקים מעט כפופים','צבוט בסוף והורד לאט'],['משקל כבד מדי','משיכה עם הגב במקום עם הכתף'],'פרפר הפוך במכונה','פייס פול (Face Pull)');
+I('פרפר הפוך במכונה','Reverse pec deck','כתף אחורית, גב עליון',1,['שב עם החזה צמוד לכרית','פתח את הידיים לאחור בקשת','החזק שנייה וחזור לאט'],['הרמת הכתפיים','תנופה'],'הרמות אחוריות','פייס פול (Face Pull)');
+I('שכיבות סמיכה פייק (כתפיים)','Pike push-up','כתפיים, תלת-ראשי',2,['עמוד בצורת V הפוכה, ישבן גבוה','כופף מרפקים והורד את קודקוד הראש לכיוון הרצפה','דחוף חזרה למעלה'],['גב מעוגל','מרפקים שנפתחים לצדדים'],'שכיבות סמיכה','לחיצת כתפיים בדמבלים');
+I('סלסול דו-ראשי במוט','Barbell curl','דו-ראשי, אמות',1,['עמוד זקוף, מרפקים צמודים לגוף','סלסל את המוט עד גובה החזה','הורד לאט עד יישור כמעט מלא'],['נדנוד הגוף','מרפקים שזזים קדימה'],'סלסול דו-ראשי בדמבלים','סלסול בספסל סקוט');
+I('סלסול דו-ראשי בדמבלים','Dumbbell curl','דו-ראשי, אמות',1,['דמבלים לצד הגוף, כפות ידיים קדימה','סלסל וסובב מעט את פרק היד החוצה','הורד לאט'],['תנופה','חצי טווח'],'סלסול פטיש','סלסול דו-ראשי במוט');
+I('סלסול פטיש','Hammer curl','ברכיאלי, דו-ראשי, אמות',1,['אחיזה ניטרלית, אגודלים למעלה','סלסל בלי לסובב את פרק היד','הורד לאט'],['מרפקים שזזים','משקל כבד שמכריח להתנדנד'],'סלסול דו-ראשי בדמבלים','סלסול דו-ראשי במוט');
+I('פשיטת מרפקים בכבל (Pushdown)','Triceps pushdown','תלת-ראשי',1,['עמוד מול הכבל, מרפקים צמודים לגוף','דחוף למטה עד יישור מלא','חזור לאט עד זווית של 90°'],['מרפקים שזזים קדימה ואחורה','הישענות עם כל הגוף'],'מקבילים על כיסא','פשיטת מרפקים מעל הראש');
+I('פשיטת מרפקים מעל הראש','Overhead triceps extension','תלת-ראשי (ראש ארוך)',1,['החזק דמבל בשתי ידיים מעל הראש','הורד מאחורי הראש, מרפקים קדימה וצמודים','פשוט חזרה למעלה'],['מרפקים שנפתחים לצדדים','קשת בגב'],'פשיטת מרפקים בכבל (Pushdown)','לחיצה צרפתית (French Press)');
+I('מקבילים על כיסא','Bench dip','תלת-ראשי, חזה, כתף קדמית',1,['ידיים על קצה כיסא יציב, אצבעות קדימה','רד עד שהמרפקים בזווית של 90°, גב קרוב לכיסא','דחוף למעלה, רגליים כפופות קל יותר וישרות קשה יותר'],['ירידה עמוקה מדי','כתפיים שעולות לאוזניים'],'פשיטת מרפקים בכבל (Pushdown)','מקבילים (דיפס)');
+I('סקוואט','Barbell back squat','ארבע-ראשי, ישבן, ירך אחורית, ליבה',3,['מוט על הגב העליון, רגליים ברוחב כתפיים, בהונות מעט החוצה','שאף, כווץ בטן ורד כאילו אתה מתיישב, ברכיים בכיוון הבהונות','רד לפחות עד מקביל ודחוף את הרצפה למעלה'],['ברכיים שקורסות פנימה','עקבים שמתרוממים או גב שמתעגל'],'סקוואט גביע (Goblet)','סקוואט קדמי');
+I('סקוואט גביע (Goblet)','Goblet squat','ארבע-ראשי, ישבן, ליבה',1,['החזק דמבל או קטלבל צמוד לחזה','רד בין הברכיים, גו זקוף ומרפקים בין הברכיים','דחוף דרך כל כף הרגל למעלה'],['גו שנופל קדימה','חצי טווח'],'סקוואט משקל גוף','סקוואט');
+I('סקוואט משקל גוף','Bodyweight squat','ארבע-ראשי, ישבן',1,['רגליים ברוחב כתפיים, ידיים קדימה לאיזון','רד לאט כאילו אתה מתיישב על כיסא','עלה דרך העקבים'],['ברכיים שקורסות פנימה','עלייה על קצות האצבעות'],'ישיבת קיר (Wall Sit)','סקוואט גביע (Goblet)');
+I('סקוואט בולגרי','Bulgarian split squat','ארבע-ראשי, ישבן',3,['רגל אחורית על ספסל, רגל קדמית כצעד גדול קדימה','רד ישר למטה עד שהירך הקדמית כמעט מקבילה','דחוף דרך העקב הקדמי'],['ברך קדמית שקורסת פנימה','צעד קצר מדי'],'מכרעים','סקוואט בולגרי');
+I('לחיצת רגליים','Leg press','ארבע-ראשי, ישבן',1,['גב ואגן צמודים למושב, רגליים ברוחב כתפיים','הורד עד זווית של כ-90° בברך','דחוף בלי לנעול את הברכיים'],['אגן שמתרומם מהמושב בתחתית','נעילת ברכיים'],'סקוואט גביע (Goblet)','האק סקוואט');
+I('פשיטת ברכיים (Leg Extension)','Leg extension','ארבע-ראשי',1,['כוון את הכרית מעל הקרסול וציר המכונה מול הברך','פשוט עד יישור והחזק שנייה','הורד לאט'],['קפיצה של המשקל','הרמת הישבן'],'פשיטת ברכיים (Leg Extension)','סקוואט בולגרי');
+I('כיפוף ברכיים שכיבה (Leg Curl)','Lying leg curl','ירך אחורית',1,['שכב על הבטן, כרית מעל העקב','משוך את העקבים לכיוון הישבן','הורד לאט'],['אגן שמתרומם','תנופה'],'כיפוף ברכיים ישיבה','דדליפט רומני');
+I('מכרעים','Lunge','ארבע-ראשי, ישבן',2,['צעד גדול קדימה, גו זקוף','רד עד שהברך האחורית כמעט נוגעת ברצפה','דחוף חזרה דרך העקב הקדמי'],['ברך קדמית שקורסת פנימה','צעד קצר שמעמיס על הברך'],'עליית מדרגה (Step-up)','סקוואט בולגרי');
+I('דדליפט רומני','Romanian deadlift','ירך אחורית, ישבן, גב תחתון',2,['עמוד עם המוט או הדמבלים, ברכיים מעט כפופות','דחוף את האגן לאחור והורד את המשקל צמוד לרגליים','עצור כשמרגישים מתיחה בירך האחורית וחזור למעלה'],['גב מעוגל','כפיפת ברכיים שהופכת את התרגיל לסקוואט'],'גשר ישבן עם משקל','דדליפט');
+I('עליית מדרגה (Step-up)','Step-up','ארבע-ראשי, ישבן',1,['עמוד מול ספסל או מדרגה יציבה','דרוך עם כל כף הרגל ועלה דרך העקב','רד לאט עם אותה רגל'],['דחיפה מהרגל האחורית','משטח גבוה מדי'],'סקוואט משקל גוף','מכרעים');
+I('עליות עקבים בעמידה','Standing calf raise','תאומים',1,['עמוד על קצה מדרגה, עקבים באוויר','רד עד מתיחה מלאה','עלה על קצות האצבעות והחזק שנייה'],['קפיצות מהירות','טווח קצר'],'עליות עקבים בישיבה','עליות עקבים בעמידה');
+I('ישיבת קיר (Wall Sit)','Wall sit','ארבע-ראשי, ישבן',1,['גב צמוד לקיר, החלק למטה','ברכיים בזווית של 90° מעל הקרסוליים','החזק ונשום באופן קבוע'],['ברכיים מעבר לבהונות','עצירת נשימה'],'סקוואט משקל גוף','סקוואט משקל גוף');
+I('קפיצות סקוואט','Jump squat','ארבע-ראשי, ישבן, תאומים',2,['רד לסקוואט רדוד','קפוץ למעלה בעוצמה','נחת רך על קדמת כף הרגל ורד ישר לחזרה הבאה'],['נחיתה קשה על העקבים','ברכיים שקורסות פנימה בנחיתה'],'סקוואט משקל גוף','קפיצה לארגז (Box Jump)');
+I('האק סקוואט','Hack squat','ארבע-ראשי, ישבן',2,['גב צמוד לכרית, כתפיים מתחת לרפידות','רד לעומק נוח בשליטה','דחוף דרך כל כף הרגל'],['ברכיים שקורסות פנימה','חצי טווח'],'לחיצת רגליים','סקוואט');
+I('היפ תראסט','Hip thrust','ישבן, ירך אחורית',2,['גב עליון על ספסל, מוט מעל האגן','דחוף דרך העקבים עד שהגוף ישר מהכתפיים לברכיים','צבוט ישבן למעלה שנייה ורד'],['קשת בגב התחתון למעלה','רגליים רחוקות מדי'],'גשר ישבן','היפ תראסט');
+I('גשר ישבן','Glute bridge','ישבן, ירך אחורית',1,['שכב על הגב, ברכיים כפופות, כפות רגליים קרוב לישבן','דחוף דרך העקבים והרם את האגן','צבוט ישבן למעלה 2 שניות ורד לאט'],['קשת בגב במקום הרמה מהישבן','דחיפה מהבהונות'],'גשר ישבן','גשר ישבן עם משקל');
+I('גשר ישבן עם משקל','Weighted glute bridge','ישבן, ירך אחורית',1,['כמו גשר ישבן, עם משקולת על האגן','דחוף דרך העקבים','החזק למעלה ורד לאט'],['קשת בגב','משקולת שלא מאוזנת'],'גשר ישבן','היפ תראסט');
+I('בעיטות ישבן על ארבע (Donkey Kick)','Donkey kick','ישבן',1,['על ארבע, ידיים מתחת לכתפיים','הרם ברך כפופה עם כף רגל כלפי התקרה','החזק רגע והורד בלי לקשת את הגב'],['סיבוב האגן','קשת בגב התחתון'],'גשר ישבן','בעיטת ישבן בכבל');
+I('גוד מורנינג (Good Morning)','Good morning','ירך אחורית, גב תחתון, ישבן',3,['מוט קל על הגב העליון, ברכיים מעט כפופות','התכופף מהמותניים עם גב ישר','חזור למעלה בדחיפת אגן קדימה'],['גב מעוגל','משקל כבד מדי'],'דדליפט רומני','דדליפט רומני');
+I('פלנק','Plank','ליבה, כתפיים',1,['אמות על הרצפה מתחת לכתפיים','גוף ישר מהראש עד העקבים, בטן וישבן מכווצים','נשום באופן קבוע לאורך כל הזמן'],['אגן ששוקע או עולה','עצירת נשימה'],'פלנק','פלנק עם נגיעת כתף');
+I('פלנק צידי','Side plank','ליבה צידית, כתף',1,['שכב על הצד, אמה מתחת לכתף','הרם את האגן עד קו ישר','החזק וחזור על הצד השני'],['אגן ששוקע','כתף שעולה לאוזן'],'פלנק','פלנק צידי');
+I('פלנק עם נגיעת כתף','Plank shoulder tap','ליבה, כתפיים',2,['פלנק גבוה על כפות הידיים, רגליים מעט פתוחות','גע ביד בכתף הנגדית לסירוגין','שמור שהאגן לא יתנדנד'],['נדנוד האגן','מהירות שבאה על חשבון יציבות'],'פלנק','הר מטפס (Mountain Climbers)');
+I('הר מטפס (Mountain Climbers)','Mountain climbers','ליבה, כתפיים, דופק',2,['פלנק גבוה, ידיים מתחת לכתפיים','הבא ברך לחזה לסירוגין בקצב מהיר','שמור על אגן נמוך ויציב'],['ישבן גבוה','ידיים שזזות'],'פלנק','בורפי');
+I('אופני בטן','Bicycle crunch','ליבה, אלכסונים',1,['שכב על הגב, ידיים ליד הראש','קרב מרפק לברך הנגדית תוך יישור הרגל השנייה','החלף צדדים בקצב איטי'],['משיכת הראש בידיים','קצב מהיר בלי שליטה'],'כפיפות בטן','הרמות רגליים בשכיבה');
+I('כפיפות בטן','Crunch','בטן ישרה',1,['שכב על הגב, ברכיים כפופות','הרם את הכתפיים מהרצפה עם הבטן','רד לאט'],['משיכת הצוואר','עלייה מלאה לישיבה'],'דד באג (Dead Bug)','קראנצ׳ בכבל');
+I('הרמות רגליים בשכיבה','Lying leg raise','בטן תחתונה',2,['שכב על הגב, ידיים לצד הגוף','הרם רגליים ישרות עד 90°','הורד לאט בלי שהגב התחתון יתרומם'],['גב תחתון שמתקשת','הורדה מהירה'],'דד באג (Dead Bug)','הרמות רגליים בתלייה');
+I('הרמות רגליים בתלייה','Hanging leg raise','בטן, מכופפי ירך, אחיזה',3,['תלה במוט, כתפיים פעילות','הרם ברכיים או רגליים ישרות בלי תנופה','הורד לאט'],['נדנוד','הרמה מהמותניים בלבד'],'הרמות רגליים בשכיבה','הרמות רגליים בתלייה');
+I('דד באג (Dead Bug)','Dead bug','ליבה עמוקה',1,['שכב על הגב, ידיים למעלה וברכיים ב-90°','הורד יד ורגל נגדית לאט כשהגב התחתון צמוד לרצפה','חזור והחלף צד'],['גב תחתון שמתרומם','מהירות'],'דד באג (Dead Bug)','פלנק');
+I('סיבוב רוסי','Russian twist','אלכסונים, ליבה',1,['שב עם גו נוטה לאחור ורגליים מורמות או על הרצפה','סובב את החזה מצד לצד','החזק משקולת להעלאת קושי'],['סיבוב רק של הידיים','גב מעוגל'],'אופני בטן','סיבוב רוסי');
+I('גלגל בטן','Ab wheel rollout','ליבה, גב רחב',3,['על הברכיים, ידיים על הגלגל','גלגל קדימה לאט כל עוד הגב לא שוקע','משוך חזרה עם הבטן'],['גב תחתון ששוקע','טווח ארוך מדי בהתחלה'],'פלנק','גלגל בטן');
+I('בורפי','Burpee','כל הגוף, דופק',2,['רד לסקוואט והנח ידיים על הרצפה','קפוץ לאחור לפלנק, וחזור עם הרגליים','קום וקפוץ למעלה'],['נחיתה קשה','גב שוקע בפלנק'],'הר מטפס (Mountain Climbers)','בורפי');
+I('ריצה במקום','High knees','דופק, ירך קדמית',1,['רוץ במקום והרם ברכיים לגובה המותן','נחת רך על קדמת כף הרגל','הנע ידיים בקצב'],['נחיתה על העקבים','גו שנוטה לאחור'],'קפיצות פיסוק (Jumping Jacks)','בורפי');
+I('קפיצות פיסוק מהירות','Jumping jacks','דופק, כל הגוף',1,['קפוץ לפיסוק עם ידיים מעל הראש','קפוץ חזרה לרגליים צמודות','שמור על קצב קבוע ונחיתה רכה'],['נחיתה קשה','טווח חלקי בידיים'],'ריצה במקום','בורפי');
+I('נדנוד קטלבל (Swing)','Kettlebell swing','ישבן, ירך אחורית, ליבה',2,['קטלבל בין הרגליים, גב ישר','דחוף את האגן קדימה בעוצמה כדי שהקטלבל יעלה','תן לו לרדת חזרה בין הרגליים, והתנועה מהירכיים'],['הרמה עם הידיים','סקוואט במקום דחיפת אגן'],'גשר ישבן עם משקל','נדנוד קטלבל (Swing)');
 
 </script>
 <script>
@@ -300,7 +404,7 @@ function normalize(s){
   s.exercises.forEach(e=>{if(!e.grp)e.grp='אחר'});
   // מיגרציה: פריטי תוכנית -> {ex,ph}
   s.plans.forEach(p=>p.items=p.items.map(i=>typeof i==='string'?{ex:i,ph:'m'}:i));
-  s.cal=s.cal||[];s.body=s.body||[];s.water=s.water||{};
+  s.cal=s.cal||[];s.body=s.body||[];s.water=s.water||{};s.deleted=s.deleted||{w:[],p:[]};
   return s;
 }
 /* ---------- אחסון: localStorage + עותק ב-IndexedDB, ובקשת אחסון קבוע ---------- */
@@ -550,7 +654,8 @@ function startWorkout(planId,short,customName){
   if(short){const m=items.filter(i=>i.ph!=='w').slice(0,3);items=[...items.filter(i=>i.ph==='w'),...m]}
   S.current={id:uid(),start:Date.now(),planId:p&&p.id,name:(p?p.name:((customName||'').trim()||'אימון חופשי'))+(short?' (מקוצר)':''),entries:[]};
   S.current.deload=isDeloadWeek(S.current.start);
-  S.current.entries=items.map(i=>newEntry(i.ex,i.ph,i));
+  // שדות של מצב מתקדם (סופרסט, טמפו, RPE, הערה) עוברים מהתוכנית לאימון
+  S.current.entries=items.map(i=>{const en=newEntry(i.ex,i.ph,i);['ss','tempo','rpe','note'].forEach(k=>{if(i[k])en[k]=i[k]});return en});
   if(!S.current.deload)delete S.current.deload;
   save();render();
 }
@@ -596,7 +701,7 @@ function finishWorkout(){
   c.entries=c.entries.filter(e=>e.sets.length);
   if(!c.entries.length){if(!confirm('אין סטים שהושלמו. לבטל את האימון?'))return;S.current=null;save();stopRest();render();return}
   c.entries.forEach(e=>{delete e.fb;delete e.sug;delete e.ask});
-  delete c.restEnd;c.verdict=verdict(c);
+  delete c.restEnd;c.verdict=verdict(c);c.mod=Date.now();setTimeout(()=>cloudSync(true),800);
   if(c.editId){
     // עריכת אימון שנשמר: מחליפים אותו במקום, ושומרים על זמני ההתחלה והסיום המקוריים
     const k=S.workouts.findIndex(w=>w.id===c.editId);delete c.editId;
@@ -681,7 +786,8 @@ function toggleSet(i,j){
   const en=S.current.entries[i],s=en.sets[j],e=ex(en.exId);
   if(s.done){s.done=false;delete s.pr;delete s.feel;en.fb=null;if(en.ask===j)delete en.ask;save();render();return}
   if(!completeSet(i,j))return;
-  if((e.type==='s'||e.type==='t')&&!S.current.editId)startRest(restFor(en));
+  // בסופרסט אין מנוחה אחרי התרגיל הראשון בזוג: עוברים מיד לתרגיל המקושר
+  if((e.type==='s'||e.type==='t')&&!S.current.editId&&!(en.ss&&ph(en)==='m'))startRest(restFor(en));
   save();render();
 }
 /* תחושה אחרי סט: משפיעה על ההמלצה לפעם הבאה, וגם על הסט הבא באותו אימון */
@@ -767,7 +873,8 @@ function vToday(){
   const td=new Date().getDay(),cnt=S.workouts.filter(w=>w.start>=wk).length,goal=weekGoal(wk);
   const bk=!S.current&&needsBackup()?`<div class="banner"><b>💾 הגיע הזמן לגבות</b><div class="mu" style="margin:4px 0 8px">${S.settings.lastBackup?'הגיבוי האחרון היה לפני יותר משבועיים':'עוד לא גיבית את הנתונים'}. הנתונים שמורים רק במכשיר הזה, וגיבוי לוקח שנייה.</div><button class="pri sm" onclick="exportJSON()">גבה עכשיו</button> <button class="sm" onclick="S.settings.lastBackup=Date.now()-7*864e5;save();render()">הזכר לי בעוד שבוע</button></div>`:'';
   const dlb=!S.current&&isDeloadWeek(Date.now())?`<div class="banner"><b>🧘 השבוע: שבוע הקלה (שבוע ${weekNo(Date.now())})</b><div class="mu">אחרי כמה שבועות של התקדמות הגוף צריך להתאושש. ההמלצות השבוע יהיו עם כ-10% פחות משקל ופחות סטים. בשבוע הבא חוזרים להתקדם.</div></div>`:'';
-  let h=`<h1>היי 👋</h1>${bk}${dlb}${S.current?'':calBanner()+restTip()}<div class="stats">
+  const sy=S.account&&!S.current&&Date.now()-(S.settings.lastCloud||0)>864e5?`<div class="banner"><b>☁️ לסנכרן עם Google Drive?</b><div class="mu" style="margin:4px 0 8px">הסנכרון האחרון היה לפני יותר מיום.</div><button class="pri sm" onclick="cloudSync()">סנכרן עכשיו</button></div>`:"";
+  let h=`<h1>היי${S.account&&S.account.name?" "+esc(S.account.name.split(" ")[0]):""} 👋</h1>${bk}${sy}${dlb}${S.current?'':calBanner()+restTip()}<div class="stats">
    <div class="stat"><b>${cnt}/${goal}</b><span class="mu">יעד השבוע${goal<S.settings.goal?' (מותאם ליומן)':''}</span></div>
    <div class="stat"><b>🔥 ${streak()}</b><span class="mu">שבועות ברצף</span></div>
    <div class="stat"><b>${S.workouts.length}</b><span class="mu">אימונים</span></div></div>${S.current?'':dailyCard()}
@@ -784,9 +891,10 @@ function vToday(){
 }
 function entryCard(en,i){
   const e=ex(en.exId),phase=ph(en),prev=lastSets(en.exId,phase),t=e.type;
-  let h=`<div class="card ${phase==='w'?'warm':'main'}"><div class="row sp"><b>${fmtName(e.name)}</b><span class="mu">${t==='s'?'כוח':t==='t'?'זמן':t==='c'?'קרדיו':'חימום'}</span></div>
+  let h=`<div class="card ${phase==='w'?'warm':'main'}"><div class="row sp"><b class="xn" onclick="openInfo('${e.id}')">${fmtName(e.name)} <span class="info">ℹ️</span></b><span class="mu">${en.ss?'🔗 סופרסט · ':''}${t==='s'?'כוח':t==='t'?'זמן':t==='c'?'קרדיו':'חימום'}</span></div>
   ${e.tip?`<div class="tip">💡 ${esc(e.tip)} <a class="demo" href="${demoUrl(e.name)}" target="_blank" rel="noopener">▶️ הדגמה</a></div>`:`<div class="tip"><a class="demo" href="${demoUrl(e.name)}" target="_blank" rel="noopener">▶️ הדגמה בווידאו</a></div>`}
   ${en.sug?`<div class="sug">🎯 <b>היום:</b> ${esc(en.sug)}</div>`:''}
+  ${(en.tempo||en.rpe||en.note)?`<div class="mu" style="margin:4px 0">${[en.tempo?'⏱ טמפו '+esc(en.tempo):'',en.rpe?'🎚 RPE יעד '+esc(en.rpe):'',en.note?'📝 '+esc(en.note):''].filter(Boolean).join(' · ')}</div>`:''}
   <div class="set mu" style="margin-bottom:0"><span></span>${t==='s'?'<span>ק"ג</span><span>חזרות</span><span>קודם</span>':t==='t'?'<span>שניות</span><span></span><span>קודם</span>':t==='c'?'<span>דקות</span><span>ק"מ</span><span>קצב</span>':'<span>דקות</span><span></span><span></span>'}<span></span></div>`;
   const cur=en.sets.findIndex(s=>!s.done);
   en.sets.forEach((s,j)=>{
@@ -854,6 +962,7 @@ function renderModal(){
   const m=document.getElementById('modal');
   if(!modal){m.classList.remove('show');m.innerHTML='';return}
   m.classList.add('show');
+  if(modal.info){m.innerHTML=`<div class="sheet">${infoHtml(modal.info)}</div>`;m.scrollTop=0;return}
   m.innerHTML=`<div class="sheet">${modal.form?exForm():`<div class="top row"><input id="pq" type="search" placeholder="🔍 חיפוש תרגיל או קבוצת שרירים" value="${esc(modal.q)}" oninput="modal.q=this.value;pickList()"><button onclick="closeModal()">סגור</button></div><div id="plist"></div>`}</div>`;
   if(!modal.form)pickList();
 }
@@ -864,7 +973,7 @@ function pickList(){
   let h=`<button class="pick new" onclick="modal.form=true;renderModal()">✏️ תרגיל חדש${q?`: "${esc(modal.q.trim())}"`:''}</button>`;
   order.forEach(g=>{
     const l=S.exercises.filter(e=>(e.grp||'אחר')===g&&filt(e)&&(!q||e.name.toLowerCase().includes(q)||g.includes(q)));
-    if(l.length)h+=`<div class="mu pg">${g}</div>`+l.map(e=>`<button class="pick" onclick="pickEx('${e.id}')">${esc(e.name)} ${typeIcon(e.type)}</button>`).join('');
+    if(l.length)h+=`<div class="mu pg">${g}</div>`+l.map(e=>`<div class="row"><button class="pick grow" onclick="pickEx('${e.id}')">${esc(e.name)} ${typeIcon(e.type)}</button><button class="sm" onclick="openInfo('${e.id}')" aria-label="הסבר על התרגיל">ℹ️</button></div>`).join('');
   });
   document.getElementById('plist').innerHTML=h;
 }
@@ -907,16 +1016,27 @@ function planRow(p,it,i){
     t==='s'?f('sets','סטים',it.sets)+f('reps','חזרות',it.reps)+f('rest','הפסקה (ש׳)',it.rest):
     t==='t'?f('sets','סטים',it.sets)+f('sec','שניות',it.sec)+f('rest','הפסקה (ש׳)',it.rest):
     t==='c'?f('sets','סטים',it.sets)+f('min','דקות',it.min)+f('rest','הפסקה (ש׳)',it.rest):f('min','דקות',it.min);
-  return `<div class="pit"><div class="row sp"><b>${fmtName(ex(it.ex).name)}</b><span><button class="sm" onclick="planMove('${p.id}',${i},-1)">↑</button> <button class="sm" onclick="planMove('${p.id}',${i},1)">↓</button> <button class="sm dg" onclick="planDel('${p.id}',${i})">✕</button></span></div><div class="g3">${cols}</div></div>`;
+  return `<div class="pit"><div class="row sp"><b class="xn" onclick="openInfo('${it.ex}')">${fmtName(ex(it.ex).name)} <span class="info">ℹ️</span></b><span><button class="sm" onclick="planMove('${p.id}',${i},-1)">↑</button> <button class="sm" onclick="planMove('${p.id}',${i},1)">↓</button> <button class="sm dg" onclick="planDel('${p.id}',${i})">✕</button></span></div><div class="g3">${cols}</div>${advRow(p,it,i)}</div>`;
 }
 function planSet(id,i,k,v){P(id).items[i][k]=v===''?undefined:+v;save()}
+/* מצב מתקדם: סופרסט עם התרגיל הבא, טמפו, RPE יעד והערה אישית לכל תרגיל */
+function advRow(p,it,i){
+  if(!S.settings.adv||it.ph==='w')return '';
+  const nextMain=p.items.slice(i+1).find(x=>(x.ph||'m')==='m');
+  return `<div class="g3" style="margin-top:6px"><div><label>טמפו (למטה-עצירה-למעלה)</label><input dir="ltr" placeholder="3-1-1" value="${esc(it.tempo||'')}" onchange="planSetT('${p.id}',${i},'tempo',this.value)"></div>
+  <div><label>RPE יעד (1–10)</label><input type="number" min="1" max="10" step="0.5" value="${it.rpe??''}" onchange="planSet('${p.id}',${i},'rpe',this.value)"></div>
+  <div><label>הערה</label><input placeholder="אחיזה צרה…" value="${esc(it.note||'')}" onchange="planSetT('${p.id}',${i},'note',this.value)"></div></div>
+  ${nextMain?`<label class="row" style="margin-top:6px;font-size:14px"><input type="checkbox" style="width:auto" ${it.ss?'checked':''} onchange="planSS('${p.id}',${i},this.checked)"> 🔗 סופרסט עם: ${esc(ex(nextMain.ex).name)}</label>`:''}`;
+}
+function planSetT(id,i,k,v){v=v.trim();if(v)P(id).items[i][k]=v;else delete P(id).items[i][k];save()}
+function planSS(id,i,on){if(on)P(id).items[i].ss=true;else delete P(id).items[i].ss;save();render()}
 function planMove(id,i,d){
   const a=P(id).items,phs=a[i].ph||'m';let j=i+d;
   while(j>=0&&j<a.length&&(a[j].ph||'m')!==phs)j+=d;
   if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];save();render();
 }
 function planDel(id,i){P(id).items.splice(i,1);save();render()}
-function planRemove(id){if(confirm('למחוק את התוכנית?')){S.plans=S.plans.filter(p=>p.id!==id);openPlan=null;save();render()}}
+function planRemove(id){if(confirm('למחוק את התוכנית?')){tomb('p',id);S.plans=S.plans.filter(p=>p.id!==id);openPlan=null;save();render()}}
 function exDel(id){
   if(S.plans.some(p=>p.items.some(i=>i.ex===id))||S.workouts.some(w=>w.entries.some(e=>e.exId===id)))return toast('התרגיל בשימוש בתוכנית או בהיסטוריה, אי אפשר למחוק');
   S.exercises=S.exercises.filter(e=>e.id!==id);save();render();
@@ -952,7 +1072,7 @@ function vProgress(){
     <div class="row"><button class="sm" onclick="editWorkout('${w.id}')">✏️ ערוך</button><button class="sm" onclick="shareWorkout('${w.id}')">📤 שתף</button><button class="sm dg" onclick="delWorkout('${w.id}')">מחק</button></div></div>`}).join('');
   return h;
 }
-function delWorkout(id){if(confirm('למחוק את האימון?')){S.workouts=S.workouts.filter(w=>w.id!==id);save();render()}}
+function delWorkout(id){if(confirm('למחוק את האימון?')){tomb('w',id);S.workouts=S.workouts.filter(w=>w.id!==id);save();render()}}
 function chart(p){
   if(p.length<2)return `<div class="empty">צריך לפחות 2 אימונים לגרף</div>`;
   const W=320,H=140,pad=24,min=Math.min(...p.map(x=>x.v))*.95,max=Math.max(...p.map(x=>x.v))*1.02,t0=p[0].t,t1=p[p.length-1].t||1;
@@ -964,7 +1084,9 @@ function chart(p){
 }
 function vSettings(){
   const today=ymd(Date.now()),up=S.cal.filter(e=>e.end>=today).sort((a,b)=>a.start<b.start?-1:1);
-  return `<h1>הגדרות</h1><div class="card"><button style="width:100%;margin-bottom:12px" onclick="quizStart()">🧭 שאלון: בנה תכנית מחדש</button>
+  return `<h1>הגדרות</h1>${accountCard()}<div class="card"><button style="width:100%;margin-bottom:12px" onclick="quizStart()">🧭 שאלון: בנה תכנית מחדש</button>
+  <label class="row sp"><span>מצב מתקדם<div class="mu">סופרסטים, טמפו, RPE יעד והערות לכל תרגיל בעורך התוכנית</div></span><input type="checkbox" style="width:auto" ${S.settings.adv?'checked':''} onchange="S.settings.adv=this.checked;save()"></label><br>
+  <label class="row sp"><span>מד קצב בנגן<div class="mu">כדור שעולה ויורד לפי הטמפו וסופר חזרות</div></span><input type="checkbox" style="width:auto" ${S.settings.pacer!==false?'checked':''} onchange="S.settings.pacer=this.checked;save()"></label><br>
   <div class="row sp"><span>זמן מנוחה (שניות)</span><input type="number" style="width:90px" value="${S.settings.rest}" onchange="S.settings.rest=+this.value||90;save()"></div><br>
   <div class="row sp"><span>יעד אימונים בשבוע</span><input type="number" style="width:90px" value="${S.settings.goal}" onchange="S.settings.goal=+this.value||3;save()"></div><br>
   <div class="row sp"><span>מטרה<div class="mu">קובעת את טווח החזרות ואת יעד הנפח</div></span><select style="width:150px" onchange="S.settings.goalType=this.value;save();render()">${Object.entries(GOALS).map(([k,v])=>`<option value="${k}" ${k===(S.settings.goalType||'hyp')?'selected':''}>${v.l} (${v.min}–${v.max})</option>`).join('')}</select></div><br>
@@ -1124,6 +1246,7 @@ const QUIZ=[
  {k:'pushups',t:'כמה שכיבות סמיכה אתה עושה ברצף?',sub:'מכייל את רמת הקושי',type:'one',opts:[['0','🙅','עד 5'],['1','👌','בין 6 ל-15'],['2','💪','בין 16 ל-30'],['3','🔥','יותר מ-30']]},
  {k:'place',t:'איפה אתה מתאמן?',type:'one',opts:[['bw','🏠','בבית, בלי ציוד'],['db','🏠','בבית, עם דמבלים'],['gym','🏢','בחדר כושר']]},
  {k:'days',t:'באילו ימים נוח לך להתאמן?',sub:'לפחות 2, עד 6 ימים',type:'days'},
+ {k:'variety',t:'איך תרצה שהאימונים בשבוע ייראו?',sub:'למשל: אם יש לך פעמיים בשבוע גב ורגליים',type:'one',opts:[['same','🔁','אותם תרגילים בכל פעם: קל לעקוב ולהתקדם במשקלים'],['vary','🔀','כל אימון שונה: יותר גיוון ופחות שגרה']]},
  {k:'dur',t:'כמה זמן יש לך לכל אימון?',type:'one',opts:[['20','⏱️','20 דקות'],['30','⏱️','30 דקות'],['45','⏱️','45 דקות'],['60','⏱️','60 דקות']]},
  {k:'time',t:'מתי נוח לך להתאמן?',sub:'לתזכורות ביומן',type:'one',opts:[['morning','🌅','בבוקר'],['noon','☀️','בצהריים'],['evening','🌙','בערב']]},
  {k:'limits',t:'יש כאבים או מגבלות?',sub:'נתאים את התרגילים, למשל בלי קפיצות לברכיים',type:'multi',excl:'none',opts:[['knee','🦵','ברכיים'],['back','🔙','גב תחתון'],['shoulder','💪','כתפיים'],['none','✅','אין מגבלות']]},
@@ -1178,15 +1301,16 @@ function vQuizResult(){
   return `<div class="qz"><div class="qtop"><button class="sm" onclick="qBack()">›</button></div>
   <h1>התכנית שלך מוכנה 🎉</h1><div class="sub">${G} · ${Pl} · ${r.plans.length} אימונים בשבוע · עד ${a.dur} דק׳</div>
   ${r.plans.map(p=>{const m=estMin(p.items),nm=p.items.filter(i=>i.ph!=='w'),rs=nm.map(i=>i.rest).filter(Boolean);
-    return `<div class="card"><div class="row sp"><b>${DAYS[p.days[0]]} · ${esc(p.name)}</b><span class="mu">~${m} דק׳ · ~${Math.round(5.5*wkg*m/60)} קק"ל</span></div>
+    return `<div class="card"><div class="row sp"><b>${p.days.map(d=>DAYS[d]).join(' ')} · ${esc(p.name)}</b><span class="mu">~${m} דק׳ · ~${Math.round(5.5*wkg*m/60)} קק"ל</span></div>
     <div class="mu">${p.items.filter(i=>i.ph==='w').length} חימום · ${nm.length} תרגילים · הפסקה ${rs.length?Math.min(...rs)+'–'+Math.max(...rs):'-'} שנ׳</div>
-    <div class="mu" style="margin-top:4px">${nm.map(i=>esc(ex(i.ex).name)).join(' · ')}</div></div>`}).join('')}
+    <div class="mu" style="margin-top:4px">${nm.map(i=>`<a class="xn" onclick="openInfo('${i.ex}')">${esc(ex(i.ex).name)}</a>`).join(' · ')}</div></div>`}).join('')}
+  <div class="mu" style="margin-bottom:8px">👆 לחץ על שם של תרגיל כדי לראות מה הוא עושה, איך מבצעים אותו ומה מומלץ לרמה שלך</div>
   <div class="tip">💡 מכאן המשקלים והחזרות מתקדמים לבד לפי מה שתרשום, כולל שבוע הקלה, ואחרי כל סט תוכל לסמן איך הרגיש.</div>
   <div class="foot"><button class="pri big" onclick="applyQuiz()">▶ שמור והתחל להתאמן</button><button style="width:100%;margin-top:8px" onclick="qBack()">שנה תשובות</button></div></div>`;
 }
 function applyQuiz(){
   const a=QZ.a;
-  S.plans=S.plans.filter(p=>!p.gen).concat(QZ.res.plans);
+  S.plans.filter(p=>p.gen).forEach(p=>tomb('p',p.id));S.plans=S.plans.filter(p=>!p.gen).concat(QZ.res.plans);
   S.profile={...a,start:startOfWeek(Date.now())};
   S.settings.goal=a.days.length;S.settings.rest=QZ.res.rest;
   S.settings.goalType={muscle:'hyp',strength:'str',lose:'end',abs:'end',fit:'end'}[a.goal]||'hyp';
@@ -1272,8 +1396,12 @@ function genPlans(a){
     return out;
   };
   const seq=SEQ[Math.min(6,n)],occ={},tot={};seq.forEach(k=>tot[k]=(tot[k]||0)+1);
-  const plans=seq.map((k,idx)=>{
-    const [nm,base]=SPL[k],o=occ[k]=(occ[k]??-1)+1;
+  // "same": אימון מאותו סוג חוזר זהה (תוכנית אחת שרצה בכמה ימים). "vary": כל מופע מקבל תרגילים אחרים
+  const same=a.variety==='same',firstOf={},plans=[];
+  seq.forEach((k,idx)=>{
+    const day=days[idx]??days[days.length-1];
+    if(same&&firstOf[k]){if(!firstOf[k].days.includes(day))firstOf[k].days.push(day);return}
+    const [nm,base]=SPL[k],o=same?0:(occ[k]=(occ[k]??-1)+1);
     const wu=warm(k),wmin=wu.reduce((s,x)=>s+x.min,0);
     const perEx=sets*(0.7+rest/60);
     const count=Math.max(3,Math.min(9,Math.round((dur-wmin)/perEx)));
@@ -1307,8 +1435,9 @@ function genPlans(a){
     }
     // אם נגמרו התרגילים האפשריים והאימון עדיין קצר מהמבוקש, מוסיפים סט לכל תרגיל (עד 5)
     for(let g=0;g<3&&estMin([...wu,...items])<dur-5;g++)items.forEach(it=>{if(it.sets&&ex(it.ex).type!=='c'&&it.sets<5)it.sets++});
-    const letter=tot[k]>1?' '+['א׳','ב׳','ג׳'][o]:'';
-    return {id:uid(),gen:true,tag:({FB:'גוף',UP:'עליון',LOW:'תחתון',PUSH:'דחיפה',PULL:'משיכה',LEG:'רגליים',CORE:'בטן'}[k])+letter,name:nm+letter,days:[days[idx]??days[days.length-1]],items:[...wu,...items]};
+    const letter=(!same&&tot[k]>1)?' '+['א׳','ב׳','ג׳'][o]:'';
+    const p={id:uid(),gen:true,tag:({FB:'גוף',UP:'עליון',LOW:'תחתון',PUSH:'דחיפה',PULL:'משיכה',LEG:'רגליים',CORE:'בטן'}[k])+letter,name:nm+letter,days:[day],items:[...wu,...items]};
+    plans.push(p);firstOf[k]=p;
   });
   return {plans,rest};
 }
@@ -1367,23 +1496,50 @@ function tone(f,d){
 }
 function speak(t){if(!voiceOn()||!window.speechSynthesis)return;try{const u=new SpeechSynthesisUtterance(t);u.lang='he-IL';u.rate=1.05;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
 const isTimed=e=>e.type==='t'||e.type==='w'||e.type==='c';
+/* סופרסט: תרגיל עם en.ss מקושר לתרגיל שאחריו. מבצעים סט מכל אחד לסירוגין, ומנוחה רק בסוף הסבב */
 function steps(){
   const en=S.current.entries,idx=en.map((e,i)=>i).sort((a,b)=>((ph(en[a])==='w')?0:1)-((ph(en[b])==='w')?0:1)||a-b),out=[];
-  idx.forEach(i=>en[i].sets.forEach((s,j)=>out.push({i,j})));return out;
+  for(let a=0;a<idx.length;){
+    const g=[idx[a]];
+    while(a+g.length<idx.length&&en[g[g.length-1]].ss&&ph(en[g[g.length-1]])==='m'&&ph(en[idx[a+g.length]])==='m')g.push(idx[a+g.length]);
+    const mx=Math.max(...g.map(i=>en[i].sets.length));
+    for(let j=0;j<mx;j++)g.forEach(i=>{if(j<en[i].sets.length)out.push({i,j})});
+    a+=g.length;
+  }
+  return out;
 }
 function cur(){const st=steps()[PL.k];if(!st)return null;const en=S.current.entries[st.i];return {i:st.i,j:st.j,en,s:en.sets[st.j],e:ex(en.exId)}}
 const durSec=c=>c.e.type==='t'?(c.s.sec||30):Math.round((c.s.min||1)*60);
+/* טמפו "ירידה-עצירה-עלייה" בשניות, למשל 3-1-1. ברירת מחדל 2-0-1 */
+function tempoOf(en){const m=String(en.tempo||'').match(/(\d+(?:\.\d+)?)\D+(\d+(?:\.\d+)?)\D+(\d+(?:\.\d+)?)/);const t=m?[+m[1],+m[2],+m[3]]:[2,0,1];return [Math.max(.5,t[0]),t[1],Math.max(.5,t[2])]}
+/* משפטי אימון שמתחלפים תוך כדי תנועה, לפי קבוצת השרירים */
+const COACH={'חזה':['שכמות צמודות ולמטה לאורך כל הסט','נשוף בזמן הדחיפה','רד לאט, 2 שניות למטה'],'גב':['הובל את התנועה עם המרפקים','צבוט שכמות בסוף כל חזרה','חזה גבוה, גב ישר'],'כתפיים':['בטן מכווצת, בלי קשת בגב','כתפיים רחוקות מהאוזניים'],'ידיים':['מרפקים קבועים במקום','שליטה בירידה, בלי תנופה'],'רגליים':['ברכיים בכיוון הבהונות','דחוף את הרצפה דרך כל כף הרגל','שאף למטה, נשוף למעלה'],'ישבן':['צבוט ישבן בנקודה העליונה','דחוף דרך העקבים'],'בטן וליבה':['נשוף והדק את הבטן','גב תחתון יציב ונשימה קבועה'],'קרדיו':['נשום בקצב קבוע','קצב שאפשר להחזיק עד הסוף'],'פונקציונלי':['איכות לפני מהירות','נחיתה רכה ושליטה'],'חימום וניידות':['תנועה רכה והדרגתית','שים לב לאזורים נוקשים']};
+const REST_TIPS=['💧 שתה כמה לגימות מים','🌬️ נשום עמוק: 4 שניות שאיפה, 4 שניות נשיפה','🙆 נער את הידיים ושחרר את הכתפיים','🧠 דמיין את החזרה המושלמת לפני שמתחילים','⏱ מנוחה מלאה = יותר חזרות בסט הבא'];
+function coachList(c){
+  if(PL.st==='rest'){const nx=steps()[PL.k+1],nE=nx&&ex(S.current.entries[nx.i].exId);return [...REST_TIPS,nE&&nE.tip?'⏭ הבא: '+nE.tip:null].filter(Boolean)}
+  return [c.e.tip?'💡 '+c.e.tip:null,...(COACH[c.e.grp]||['שליטה ותנועה מלאה']).map(x=>'🎯 '+x),c.en.note?'📝 '+c.en.note:null].filter(Boolean);
+}
+/* קונפטי קליל על קנבס, בלי ספריות */
+function confetti(){
+  try{
+    let cv=document.getElementById('confetti');if(!cv){cv=document.createElement('canvas');cv.id='confetti';document.body.appendChild(cv)}
+    const W=cv.width=innerWidth,H=cv.height=innerHeight,x=cv.getContext('2d'),cols=['#4ade80','#fbbf24','#60a5fa','#f87171','#c084fc'];
+    const P=Array.from({length:110},()=>({x:W/2+(Math.random()-.5)*80,y:H*.35,vx:(Math.random()-.5)*10,vy:-Math.random()*10-3,s:5+Math.random()*5,c:cols[Math.random()*5|0],r:Math.random()*6}));
+    const t0=performance.now();
+    (function f(t){x.clearRect(0,0,W,H);P.forEach(p=>{p.vy+=.28;p.x+=p.vx;p.y+=p.vy;p.r+=.2;x.save();x.translate(p.x,p.y);x.rotate(p.r);x.fillStyle=p.c;x.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);x.restore()});if(t-t0<1900)requestAnimationFrame(f);else x.clearRect(0,0,W,H)})(t0);
+  }catch(e){}
+}
 function playerOpen(){
   if(!S.current||S.current.editId)return;
   unlockAudio();stopRest();
   const st=steps();let k=st.findIndex(x=>!S.current.entries[x.i].sets[x.j].done);if(k<0)k=st.length-1;
-  PL={k,st:'ready',end:Date.now()+5000,total:5,left:5,paused:false,lastBeep:-1};
+  PL={k,st:'ready',end:Date.now()+5000,total:5,left:5,paused:false,lastBeep:-1,coachAt:Date.now()};
   tone(660,80);speak('התכונן');
-  clearInterval(plIv);plIv=setInterval(plTick,200);render();
+  clearInterval(plIv);plIv=setInterval(plTick,100);render();
 }
 function playerClose(){clearInterval(plIv);PL=null;render()}
 function plStartWork(){
-  const c=cur();PL.st='work';PL.lastBeep=-1;PL.paused=false;
+  const c=cur();PL.st='work';PL.lastBeep=-1;PL.paused=false;PL.workStart=Date.now();PL.repBeep=0;PL.coachAt=Date.now();
   // ערכי ברירת מחדל לתרגיל חדש שאין לו עדיין נתונים
   if(c.e.type==='s'&&!c.s.r)c.s.r=goalCfg().min;
   if(c.e.type==='t'&&!(c.s.sec>0))c.s.sec=30;
@@ -1394,22 +1550,25 @@ function plStartWork(){
 function plSetDone(){
   const c=cur();if(!c)return;
   if(!completeSet(c.i,c.j))return;
+  if(c.s.pr)confetti();
   // מעתיקים את הערכים לסטים הבאים שעוד ריקים (כמו בטבלה)
   c.en.sets.forEach((x,k)=>{if(k>c.j&&!x.done)['w','r','sec'].forEach(f=>{if(x[f]===''&&c.s[f]!==undefined)x[f]=c.s[f]})});
   save();
   const stp=steps();
   if(PL.k>=stp.length-1){PL.st='done';speak('סיימת את האימון');render();return}
-  const nx=S.current.entries[stp[PL.k+1].i];
-  const rest=ph(c.en)==='w'?(ph(nx)==='w'?10:30):restFor(c.en);
-  PL.st='rest';PL.total=rest;PL.end=Date.now()+rest*1000;PL.left=rest;PL.lastBeep=-1;PL.paused=false;
-  speak('מנוחה');render();
+  const nxS=stp[PL.k+1],nx=S.current.entries[nxS.i];
+  // בסופרסט: מעבר מהיר לתרגיל המקושר, בלי מנוחה מלאה
+  const trans=!!c.en.ss&&ph(c.en)==='m'&&nxS.i!==c.i;
+  const rest=trans?8:ph(c.en)==='w'?(ph(nx)==='w'?10:30):restFor(c.en);
+  PL.st='rest';PL.trans=trans;PL.restStart=Date.now();PL.total=rest;PL.end=Date.now()+rest*1000;PL.left=rest;PL.lastBeep=-1;PL.paused=false;PL.coachAt=Date.now();
+  speak(trans?'עבור מיד ל'+ex(nx.exId).name.replace(/\(.*?\)/g,''):'מנוחה');render();
 }
 function plNext(){PL.k++;plStartWork()}
 function plAddRest(s){PL.end+=s*1000;PL.total+=s;PL.left+=s}
 function plFeel(f){const c=cur();setFeel(c.i,c.j,f)}
 function plSkipEx(){
   const stp=steps(),c=cur();let k2=-1;
-  for(let k=PL.k+1;k<stp.length;k++)if(stp[k].i!==c.i){k2=k;break}
+  for(let k=PL.k+1;k<stp.length;k++)if(stp[k].i!==c.i&&!S.current.entries[stp[k].i].sets[stp[k].j].done){k2=k;break}
   if(k2<0){PL.st='done';render();return}
   PL.k=k2;PL.st='ready';PL.total=3;PL.end=Date.now()+3000;PL.left=3;PL.paused=false;render();
 }
@@ -1424,25 +1583,53 @@ function plPause(){
   render();
 }
 function plAdj(f,d){const c=cur(),s=c.s;if(f==='r')s.r=Math.max(1,(+s.r||0)+d);else s.w=Math.max(0,Math.round(((+s.w||0)+d)*2)/2);save();render()}
+function plPacer(){S.settings.pacer=S.settings.pacer===false;save();render()}
 function plFinish(){playerClose();finishWorkout()}
+/* צבע הטבעת: ירוק, צהוב, אדום ככל שהזמן אוזל. בהפסקה: כחול רגוע שהופך לירוק לקראת הסט */
+const ringCol=f=>PL&&PL.st==='rest'?(f>.25?'var(--bl)':'var(--ac)'):PL&&PL.st==='ready'?'var(--ac)':(f>.5?'var(--ac)':f>.2?'var(--wr)':'var(--dg)');
 function plTick(){
   if(!PL||!S.current)return;
-  const el=document.getElementById('pel');if(el)el.textContent=fmtT(Math.floor((Date.now()-S.current.start)/1000));
+  const now=Date.now();
+  const el=document.getElementById('pel');if(el)el.textContent=fmtT(Math.floor((now-S.current.start)/1000));
   if(PL.paused)return;
   const c=PL.st==='done'?null:cur();if(!c)return;
+  // מאמן תוך כדי תנועה: משפט חדש כל 6 שניות, עם מעבר רך
+  const co=document.getElementById('coach');
+  if(co&&now-(PL.coachAt||0)>6000){
+    PL.coachAt=now;const L=coachList(c);
+    if(L.length>1){PL.coachI=((PL.coachI||0)+1)%L.length;const txt=L[PL.coachI];co.classList.add('fade');setTimeout(()=>{co.textContent=txt;co.classList.remove('fade')},350)}
+  }
+  if(PL.st==='rest'){
+    const b=document.getElementById('breathT');if(b)b.textContent=Math.floor((now-PL.restStart)/4000)%2?'נשיפה…':'שאיפה…';
+    const pe=document.querySelector('.pl');if(pe)pe.style.setProperty('--rh',Math.round(210-90*(1-PL.left/Math.max(1,PL.total))));
+  }
+  // מד קצב לחזרות: כדור שיורד ועולה לפי הטמפו, וספירת חזרות
+  if(PL.st==='work'&&c.e.type==='s'){
+    if(S.settings.pacer===false)return;
+    const [a,b,u]=tempoOf(c.en),T=a+b+u,te=(now-PL.workStart)/1000,t=te%T;
+    const pos=t<a?t/a:t<a+b?1:1-(t-a-b)/u;
+    const ball=document.getElementById('pball');if(ball)ball.style.transform=`translateY(${(pos*68).toFixed(1)}px)`;
+    const lb=document.getElementById('plab');if(lb)lb.textContent=t<a?'⬇ למטה':t<a+b?'⏸ החזק':'⬆ למעלה';
+    const n=Math.floor(te/T),tg=+c.s.r||0,rc=document.getElementById('prc');
+    if(rc)rc.textContent=tg?`חזרה ${Math.min(n+1,tg)} מתוך ${tg}`:'';
+    if(tg&&n>=tg&&PL.repBeep!==tg){PL.repBeep=tg;tone(990,140);vib(60);const bt=document.getElementById('pdone');if(bt)bt.classList.add('go')}
+    return;
+  }
   if(!(PL.st==='ready'||PL.st==='rest'||(PL.st==='work'&&isTimed(c.e))))return;
-  const left=Math.max(0,Math.ceil((PL.end-Date.now())/1000));PL.left=left;
+  const left=Math.max(0,Math.ceil((PL.end-now)/1000));PL.left=left;
   const t=document.getElementById('pt');if(t)t.textContent=left>=60?fmtT(left):left;
-  const r=document.getElementById('ring');if(r)r.setAttribute('stroke-dashoffset',(327*(1-left/Math.max(1,PL.total))).toFixed(1));
+  const frac=left/Math.max(1,PL.total),r=document.getElementById('ring');
+  if(r){r.setAttribute('stroke-dashoffset',(327*(1-frac)).toFixed(1));r.setAttribute('stroke',ringCol(frac))}
+  const rg=document.querySelector('.ring');if(rg)rg.classList.toggle('pulse',left>0&&left<=3);
   if(left>0&&left<=3&&PL.lastBeep!==left){PL.lastBeep=left;tone(700,90)}
   if(left<=0){
     tone(1100,300);vib(200);
     if(PL.st==='ready')plStartWork();else if(PL.st==='work')plSetDone();else plNext();
   }
 }
-function ringHtml(label){
-  const c=PL.paused?PL.left:Math.max(0,Math.ceil((PL.end-Date.now())/1000));
-  return `<div class="ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--card2)" stroke-width="9"/><circle id="ring" cx="60" cy="60" r="52" fill="none" stroke="var(--ac)" stroke-width="9" stroke-linecap="round" stroke-dasharray="327" stroke-dashoffset="${(327*(1-c/Math.max(1,PL.total))).toFixed(1)}" transform="rotate(-90 60 60)"/></svg><div class="t"><span id="pt">${c>=60?fmtT(c):c}</span><small>${label}</small></div></div>`;
+function ringHtml(label,breath){
+  const c=PL.paused?PL.left:Math.max(0,Math.ceil((PL.end-Date.now())/1000)),f=c/Math.max(1,PL.total);
+  return `<div class="ring">${breath?'<div class="breath"></div>':''}<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--card2)" stroke-width="9"/><circle id="ring" cx="60" cy="60" r="52" fill="none" stroke="${ringCol(f)}" stroke-width="9" stroke-linecap="round" stroke-dasharray="327" stroke-dashoffset="${(327*(1-f)).toFixed(1)}" transform="rotate(-90 60 60)" style="transition:stroke-dashoffset .1s linear,stroke .6s"/></svg><div class="t"><span id="pt">${c>=60?fmtT(c):c}</span><small>${breath?'<span id="breathT">שאיפה…</span>':label}</small></div></div>`;
 }
 function targetText(c){
   const t=c.e.type,s=c.s,n=c.en.sets.length;
@@ -1452,43 +1639,274 @@ function targetText(c){
 }
 function vPlayer(){
   const stp=steps(),c=cur();
+  // אנימציית כניסה רק כשעוברים למסך חדש, לא בכל לחיצה על +/−
+  const ak=PL.st+':'+PL.k,anim=PL.ak!==ak?' anim':'';PL.ak=ak;
   const segs=stp.map((x,k)=>`<i class="${S.current.entries[x.i].sets[x.j].done?'d':k===PL.k?'c':''}"></i>`).join('');
   const top=`<div class="row"><button class="sm" onclick="playerClose()" title="חזרה לטבלה">✕</button><div class="segs">${segs}</div><span class="mu" id="pel">0:00</span><button class="sm" onclick="S.settings.sound=!snd();save();render()">${snd()?'🔊':'🔇'}</button><button class="sm" onclick="S.settings.voice=!voiceOn();save();render()">${voiceOn()?'🗣️':'🤐'}</button></div>`;
   if(PL.st==='done'){
-    const all=S.current.entries.flatMap(e=>e.sets),d=all.filter(s=>s.done).length,min=Math.max(1,Math.round((Date.now()-S.current.start)/6e4));
-    return `<div class="pl">${top}<h1>כל הכבוד! 🎉</h1><div class="stats" style="margin:12px 0"><div class="stat"><b>${d}</b><span class="mu">סטים</span></div><div class="stat"><b>${min}</b><span class="mu">דקות</span></div><div class="stat"><b>~${kcal(S.current)}</b><span class="mu">קק"ל</span></div></div>
+    if(!PL.party){PL.party=true;setTimeout(confetti,150)}
+    const all=S.current.entries.flatMap(e=>e.sets),d=all.filter(s=>s.done).length,min=Math.max(1,Math.round((Date.now()-S.current.start)/6e4)),prs=all.filter(s=>s.pr).length;
+    return `<div class="pl${anim}">${top}<h1>כל הכבוד! 🎉</h1><div class="stats" style="margin:12px 0"><div class="stat"><b>${d}</b><span class="mu">סטים</span></div><div class="stat"><b>${min}</b><span class="mu">דקות</span></div><div class="stat"><b>~${kcal(S.current)}</b><span class="mu">קק"ל</span></div></div>
+    ${prs?`<div class="fb good" style="text-align:center">🏆 ${prs===1?'שיא אישי חדש':prs+' שיאים אישיים חדשים'} באימון הזה!</div>`:''}
     <div class="mu" style="text-align:center">סטים שלא סומנו לא יישמרו באימון</div>
     <button class="pri big" style="margin-top:auto" onclick="plFinish()">✔ שמור וסיים</button><button style="margin-top:6px" onclick="plPrev()">⏮ חזרה לסט האחרון</button></div>`;
   }
-  const order=[...new Set(stp.map(x=>x.i))],exN=order.indexOf(c.i)+1,tag=ph(c.en)==='w'?'🔥 חימום':'💪 אימון';
+  const order=[...new Set(stp.map(x=>x.i))],exN=order.indexOf(c.i)+1,prevEn=exN>1?S.current.entries[order[exN-2]]:null;
+  const tag=ph(c.en)==='w'?'🔥 חימום':(c.en.ss||(prevEn&&prevEn.ss))?'🔗 סופרסט':'💪 אימון';
   const meta=`<div class="mu" style="text-align:center">${tag} · תרגיל ${exN}/${order.length} · סט ${c.j+1}/${c.en.sets.length}</div>`;
+  const title=`<h1 class="xn" onclick="openInfo('${c.e.id}')">${fmtName(c.e.name)} <span class="info">ℹ️</span></h1>`;
+  const adv=[c.en.tempo?'⏱ טמפו '+esc(c.en.tempo):'',c.en.rpe?'🎚 RPE יעד '+esc(c.en.rpe):''].filter(Boolean).join(' · ');
   const tip=c.e.tip?`<div class="tip">💡 ${esc(c.e.tip)}</div>`:'';
+  const how=`<div class="card" style="margin:4px 0"><b>איך מבצעים</b><ol class="how">${howList(c.e).map(s=>`<li>${esc(s)}</li>`).join('')}</ol></div>`;
+  const coach=L=>`<div id="coach" class="coach">${esc(L[0]||'')}</div>`;
   const sug=(c.en.sug&&c.j===0)?`<div class="sug">🎯 <b>היום:</b> ${esc(c.en.sug)}</div>`:'';
   const nav=`<div class="row" style="margin-top:6px"><button class="grow" onclick="plPrev()">⏮ הקודם</button><button class="grow" onclick="plSkipEx()">⏭ דלג תרגיל</button></div>${c.en.sets.some(s=>s.done)?'':`<select style="padding:8px" onchange="swapEx(${c.i},this.value)"><option value="">🔄 החלף תרגיל…</option>${altOpts(c.en)}</select>`}`;
-  if(PL.st==='ready')return `<div class="pl">${top}${meta}<h1>${fmtName(c.e.name)}</h1>${ringHtml('התכונן')}${sug}${tip}<div class="mu" style="text-align:center">${targetText(c)}</div><button class="pri big" style="margin-top:auto" onclick="plStartWork()">▶ התחל עכשיו</button>${nav}</div>`;
+  if(PL.st==='ready')return `<div class="pl${anim}">${top}${meta}${title}${ringHtml('התכונן')}${sug}${isBeginner()&&c.j===0?how:tip}<div class="mu" style="text-align:center">${targetText(c)}${adv?' · '+adv:''}</div><button class="pri big" style="margin-top:auto" onclick="plStartWork()">▶ התחל עכשיו</button>${nav}</div>`;
   if(PL.st==='rest'){
     const nx=stp[PL.k+1],ne=S.current.entries[nx.i],nE=ex(ne.exId),ns=ne.sets[nx.j];
-    return `<div class="pl">${top}<h1>מנוחה 😮‍💨</h1>${ringHtml('עד הסט הבא')}${c.en.fb?`<div class="fb ${c.en.fb.t}">${esc(c.en.fb.m)}</div>`:''}
+    return `<div class="pl rest${anim}">${top}<h1>${PL.trans?'🔗 עבור מיד לתרגיל הבא':'מנוחה 😮‍💨'}</h1>${ringHtml(PL.trans?'מעבר':'',!PL.trans)}${c.en.fb?`<div class="fb ${c.en.fb.t}">${esc(c.en.fb.m)}</div>`:''}
     ${(c.en.ask===c.j&&c.s.done)?`<div class="mu" style="text-align:center">איך הרגיש הסט?</div><div class="feel">${[1,2,3].map(f=>`<button onclick="plFeel(${f})">${FEEL[f]} ${['','קל','מאתגר','עד הקצה'][f]}</button>`).join('')}</div>`:''}
-    <div class="card"><div class="mu">הבא</div><b style="font-size:19px">${fmtName(nE.name)}</b><div class="mu">סט ${nx.j+1}/${ne.sets.length} · ${targetText({e:nE,s:ns,en:ne})}</div></div>
+    ${coach(coachList(c))}
+    <div class="card nextc"><div class="mu">הבא</div><b style="font-size:19px">${fmtName(nE.name)}</b><div class="mu">סט ${nx.j+1}/${ne.sets.length} · ${targetText({e:nE,s:ns,en:ne})}</div></div>
     <div class="row" style="margin-top:auto"><button class="grow big" onclick="plAddRest(20)">+20 ש׳</button><button class="grow big pri" onclick="plNext()">דלג ⏭</button></div></div>`;
   }
-  if(isTimed(c.e))return `<div class="pl">${top}${meta}<h1>${fmtName(c.e.name)}</h1>${ringHtml(c.e.type==='t'?'שניות':'')}${tip}
+  if(isTimed(c.e))return `<div class="pl${anim}">${top}${meta}${title}${ringHtml(c.e.type==='t'?'שניות':'')}${coach(coachList(c))}
     <div class="row" style="margin-top:auto"><button class="big" style="width:30%" onclick="plPause()">${PL.paused?'▶':'⏸'}</button><button class="pri big" onclick="plSetDone()">✔ סיימתי</button></div>${nav}</div>`;
   const s=c.s,showW=!(S.profile&&S.profile.place==='bw')||s.w>0,pv=lastSets(c.en.exId,ph(c.en)),p=pv&&pv[Math.min(c.j,pv.length-1)];
-  return `<div class="pl">${top}${meta}<h1>${fmtName(c.e.name)}</h1>${sug}${tip}
+  const pace=S.settings.pacer!==false,tp=tempoOf(c.en);
+  return `<div class="pl${anim}">${top}${meta}${title}${sug}${adv?`<div class="mu" style="text-align:center">${adv}</div>`:''}
+  ${pace?`<div class="pacerbox"><div class="pacer"><i id="pball"></i></div><div><div id="plab" class="plab">⬇ למטה</div><div id="prc" class="mu"></div><div class="mu">קצב ${tp.join('-')} שנ׳ · <a class="xn" onclick="plPacer()">כבה</a></div></div></div>`:`<div class="mu" style="text-align:center"><a class="xn" onclick="plPacer()">🎵 הפעל מד קצב</a></div>`}
+  ${coach(coachList(c))}
   <div class="stp"><button onclick="plAdj('r',-1)">−</button><b>${s.r||0}</b><button onclick="plAdj('r',1)">+</button></div><div class="mu" style="text-align:center">חזרות</div>
   ${showW?`<div class="stp"><button onclick="plAdj('w',-2.5)">−</button><b style="font-size:40px">${s.w||0}</b><button onclick="plAdj('w',2.5)">+</button></div><div class="mu" style="text-align:center">ק"ג ${s.w>0?'':'(0 = משקל גוף)'}</div>`:''}
   ${p?`<div class="mu" style="text-align:center;margin-top:6px">בפעם הקודמת: ${fmtSet(c.e,p)}</div>`:''}
-  <button class="pri big" style="margin-top:auto" onclick="plSetDone()">✔ סיימתי סט</button>${nav}</div>`;
+  <button id="pdone" class="pri big" style="margin-top:auto" onclick="plSetDone()">✔ סיימתי סט</button>${nav}</div>`;
 }
 
+/* =====================================================================
+   כרטיס "מה זה?" לכל תרגיל: שרירים, ביצוע, טעויות, המלצה לפי רמה, גרסאות ולמידה
+   ===================================================================== */
+/* יוצרי תוכן מוכרים (הערוצים והחשבונות נבדקו שהם קיימים) */
+const CREATORS=[
+ {n:'Jeff Nippard',yt:'JeffNippard',ig:'jeffnippard',d:'בניית שריר מבוססת מחקר: טכניקה, תוכניות ונפח אימון'},
+ {n:'Jeremy Ethier',yt:'JeremyEthier',ig:'jeremyethier',d:'הסברים מדעיים פשוטים על טכניקה נכונה ובחירת תרגילים'},
+ {n:'ATHLEAN-X',yt:'athleanx',ig:'athleanx',d:'פיזיותרפיסט ומאמן: טכניקה, מניעת פציעות וחיזוק'},
+ {n:'Renaissance Periodization',yt:'RenaissancePeriodization',ig:'rpstrength',d:'ד"ר מייק ישראטל: היפרטרופיה, נפח ותזונה לספורטאים'},
+ {n:'Squat University',yt:'SquatUniversity',ig:'squat_university',d:'פיזיותרפיה: ניידות ובריאות ברכיים, גב וכתפיים'},
+ {n:'Chloe Ting',yt:'ChloeTing',ig:'chloe_t',d:'אימוני בית בלי ציוד ואתגרים קצרים'},
+ {n:'Pamela Reif',yt:'PamelaRf1',ig:'pamela_rf',d:'אימוני בית קצרים לבטן ולכל הגוף, בלי ציוד'}
+];
+const ytSearch=(c,q)=>`https://www.youtube.com/@${c.yt}/search?query=${encodeURIComponent(q)}`;
+const isBeginner=()=>S.profile&&S.profile.level==='new';
+const isBodyweight=e=>Object.values(EQP.bw).some(l=>l.includes(e.name));
+function openInfo(id){modal={info:id,prev:(modal&&!modal.info)?modal:(modal&&modal.prev)||null};renderModal()}
+function infoBack(){modal=modal.prev||null;renderModal();if(modal&&!modal.form&&!modal.tpl)setTimeout(()=>{const i=document.getElementById('pq');if(i)i.value=modal.q},0)}
+/* המלצה לפי רמה. לתרגיל כוח עם משקל משתמשים בטווח החזרות של המטרה שבהגדרות */
+function levelRecs(e){
+  const g=goalCfg();
+  if(e.type==='w')return [['מתחיל','1–3 דקות לפני האימון, בקצב נוח'],['בינוני','2–3 דקות, להגביר בהדרגה'],['מתקדם','2–3 דקות, ולהוסיף סט חימום קל בתרגיל הראשון']];
+  if(e.type==='c')return [['מתחיל','10–15 דקות בקצב שאפשר לדבר בו'],['בינוני','20–30 דקות, אפשר עם אינטרוולים קצרים'],['מתקדם','30–45 דקות, או HIIT של 8–10 סבבים']];
+  if(e.type==='t')return [['מתחיל','2–3 סטים × 20–30 שניות, מנוחה 45 שניות'],['בינוני','3 סטים × 30–45 שניות, מנוחה 30–45 שניות'],['מתקדם','3–4 סטים × 45–60+ שניות, או גרסה קשה יותר']];
+  if(isBodyweight(e))return [['מתחיל','2–3 סטים × 6–10 חזרות, או הגרסה הקלה. איכות לפני כמות'],['בינוני','3 סטים × 10–15 חזרות'],['מתקדם','3–4 סטים × 15–25 חזרות, או לעבור לגרסה הקשה']];
+  return [['מתחיל',`2–3 סטים × ${g.max} חזרות, במשקל שמשאיר בערך 3 חזרות ברזרבה. מנוחה 60–90 שניות. קודם טכניקה, אחר כך משקל`],
+          ['בינוני',`3–4 סטים × ${g.min}–${g.max} חזרות, 1–2 חזרות ברזרבה. מנוחה 90–120 שניות`],
+          ['מתקדם',`4–5 סטים × ${g.min}–${g.max} חזרות, הסט האחרון קרוב לכשל. מנוחה 2–3 דקות בתרגילים מורכבים`]];
+}
+function learnLinks(e,q){
+  const pick=isBodyweight(e)&&e.type!=='s'?['ChloeTing','PamelaRf1','JeremyEthier']:['JeffNippard','JeremyEthier','athleanx'];
+  if(['רגליים','ישבן','גב'].includes(e.grp))pick.push('SquatUniversity');
+  return CREATORS.filter(c=>pick.includes(c.yt)).map(c=>`<a class="lnk" target="_blank" rel="noopener" href="${ytSearch(c,q)}">▶️ ${esc(c.n)}</a>`).join('')
+    +`<a class="lnk" target="_blank" rel="noopener" href="${demoUrl(e.name)}">🔍 סרטונים בעברית</a>`;
+}
+function howList(e){const I0=INFO[e.name];return (I0&&I0.how)||[e.tip||'בצע את התנועה לאט ובשליטה, בטווח מלא']}
+function infoHtml(id){
+  const e=ex(id),I0=INFO[e.name]||{},lv={new:0,mid:1,adv:2}[S.profile&&S.profile.level];
+  const q=I0.en||(e.name.match(/\(([A-Za-z][^)]*)\)/)||[])[1]||e.name;
+  const byN=n=>S.exercises.find(x=>x.name===n);
+  const vari=(n,l)=>n&&n!==e.name&&byN(n)?`<button class="sm" onclick="openInfo('${byN(n).id}')">${l}: ${esc(n)}</button>`:'';
+  const vv=vari(I0.ez,'⬇ קל יותר')+vari(I0.hd,'⬆ קשה יותר');
+  const tl={s:'כוח: משקל וחזרות',t:'החזקה בשניות',c:'קרדיו',w:'חימום'}[e.type]||'';
+  return `<div class="top row sp"><b style="font-size:19px">${fmtName(e.name)}</b><button onclick="${modal.prev?'infoBack()':'closeModal()'}">${modal.prev?'חזרה':'סגור'}</button></div>
+  ${I0.en?`<div class="mu" dir="ltr" style="text-align:right">${esc(I0.en)}</div>`:''}
+  <div class="chips" style="margin:8px 0">${I0.l?`<span class="chip">${['🟢 מתאים למתחילים','🟡 בינוני','🔴 למתקדמים'][I0.l-1]}</span>`:''}<span class="chip">💪 ${esc(I0.m||e.grp||'')}</span><span class="chip">${tl}</span></div>
+  <h2>איך מבצעים</h2><ol class="how">${howList(e).map(s=>`<li>${esc(s)}</li>`).join('')}</ol>
+  ${e.tip&&I0.how?`<div class="tip">💡 ${esc(e.tip)}</div>`:''}
+  ${I0.err?`<h2>טעויות נפוצות</h2><ul class="errs">${I0.err.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`:''}
+  <h2>מה מומלץ לפי רמה</h2>${levelRecs(e).map((r,k)=>`<div class="lvl ${k===lv?'me':''}"><b>${r[0]}${k===lv?' · הרמה שלך':''}</b><span>${r[1]}</span></div>`).join('')}
+  ${vv?`<h2>גרסאות</h2><div class="row" style="flex-wrap:wrap">${vv}</div>`:''}
+  <h2>ללמוד מהמומחים</h2><div class="row" style="flex-wrap:wrap">${learnLinks(e,q)}</div>
+  <div class="mu" style="margin-top:12px">ההסבר כללי ואינו תחליף להדרכה אישית. בכאב חד, עוצרים.</div>`;
+}
+
+/* =====================================================================
+   לשונית "ידע": תזונה אישית, ללמוד מהמומחים, אפליקציות ואתרים מומלצים
+   ===================================================================== */
+/* אפליקציות ואתרים מומלצים. כרגע המלצות כלליות בלבד, בלי שיתופי פעולה */
+const APPS=[
+ {n:'MyFitnessPal',u:'https://www.myfitnesspal.com',d:'ספירת קלוריות עם מאגר מזון ענק וסורק ברקודים',t:'🥗 תזונה'},
+ {n:'Cronometer',u:'https://cronometer.com',d:'מעקב מדויק אחרי ויטמינים ומינרלים, לא רק קלוריות',t:'🥗 תזונה'},
+ {n:'Yazio',u:'https://www.yazio.com',d:'ספירת קלוריות וצום לסירוגין, ממשק פשוט',t:'🥗 תזונה'},
+ {n:'Lose It!',u:'https://www.loseit.com',d:'מעקב ירידה במשקל עם יעדים שבועיים',t:'🥗 תזונה'},
+ {n:'FatSecret',u:'https://www.fatsecret.com',d:'ספירת קלוריות חינמית וקהילה',t:'🥗 תזונה'},
+ {n:'Examine',u:'https://examine.com',d:'סיכומי מחקרים על תוספי תזונה בשפה פשוטה, בלי פרסומות',t:'🔬 מידע'},
+ {n:'USDA FoodData Central',u:'https://fdc.nal.usda.gov',d:'מאגר ערכים תזונתיים רשמי של משרד החקלאות האמריקאי',t:'🔬 מידע'}
+];
+/* שותפים עתידיים: מוסיפים כאן {n:'שם', u:'קישור', d:'תיאור', code:'קוד הטבה'} והם יופיעו בלשונית "ידע" */
+const PARTNERS=[];
+/* חישוב תזונה: BMR לפי Mifflin-St Jeor, כפול רמת פעילות לפי מספר האימונים בשבוע, מותאם למטרה */
+function nutri(){
+  const p=S.profile||{},kg=S.body.length?+S.body[S.body.length-1].kg:+p.weight||0,age=+p.age||0,h=+p.height||0,sex=p.gender||'x';
+  if(!kg||!age||!h)return null;
+  const bmr=10*kg+6.25*h-5*age+(sex==='m'?5:sex==='f'?-161:-78);
+  const d=(p.days||[]).length||S.settings.goal||3,act=d<=2?1.375:d<=4?1.55:1.725;
+  const goal=p.goal||'fit',tdee=bmr*act;
+  const kcal=Math.round(tdee*(1+({lose:-.18,abs:-.12,muscle:.1,strength:.05,fit:0}[goal]||0))/10)*10;
+  const pr=Math.round(kg*({lose:2,abs:2,muscle:1.8,strength:1.8,fit:1.6}[goal]||1.6)),fat=Math.round(kg*.8);
+  return {bmr:Math.round(bmr),tdee:Math.round(tdee),kcal,pr,fat,carb:Math.max(0,Math.round((kcal-pr*4-fat*9)/4)),water:Math.round((kg*35+500)/100)/10,goal,kg,act};
+}
+const NUT_TIPS={
+ lose:['גירעון מתון: ירידה של 0.5–1% ממשקל הגוף בשבוע שומרת על השריר','מזון עשיר בנפח ודל בקלוריות: ירקות, חלבון רזה, פירות','חלבון גבוה משביע ושומר על מסת השריר בזמן הירידה'],
+ abs:['קוביות בבטן נראות בעיקר באחוז שומן נמוך: התזונה חשובה יותר מתרגילי בטן','גירעון קטן ועקבי, וחלבון גבוה'],
+ muscle:['עודף קטן של 5–10% בקלוריות מספיק לבניית שריר בלי הרבה שומן','האוכל תומך, אבל הגירוי הוא ההתקדמות במשקלים'],
+ strength:['אנרגיה מלאה ביום של אימון כבד: פחמימות לפני האימון','חלבון לאורך היום, לא רק אחרי האימון'],
+ fit:['איזון: פחמימות לאנרגיה סביב האימונים, חלבון בכל ארוחה','כמה שפחות מזון מעובד, ויותר מזון אמיתי']
+};
+function nutriForm(){
+  const p=S.profile||{};
+  const f=(k,l,v)=>`<div><label class="mu">${l}</label><input type="number" inputmode="decimal" value="${v??''}" onchange="setProf('${k}',this.value)"></div>`;
+  return `<div class="grid2">${f('age','גיל',p.age)}${f('height','גובה (ס"מ)',p.height)}${f('weight','משקל (ק"ג)',S.body.length?S.body[S.body.length-1].kg:p.weight)}
+  <div><label class="mu">מין</label><select onchange="setProf('gender',this.value)">${[['m','גבר'],['f','אישה'],['x','לא לציין']].map(([v,l])=>`<option value="${v}" ${p.gender===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
+  <label class="mu">מטרה</label><select onchange="setProf('goal',this.value)">${[['lose','ירידה במשקל'],['abs','חיטוב בטן'],['muscle','בניית שריר'],['strength','כוח'],['fit','כושר כללי']].map(([v,l])=>`<option value="${v}" ${(p.goal||'fit')===v?'selected':''}>${l}</option>`).join('')}</select>`;
+}
+function setProf(k,v){
+  S.profile=S.profile||{};
+  if(k==='weight'){const kg=parseFloat(v);if(kg>20&&kg<400){const d=ymd(Date.now());S.body=S.body.filter(b=>b.d!==d);S.body.push({d,kg});S.body.sort((a,b)=>a.d<b.d?-1:1)}}
+  else S.profile[k]=(k==='gender'||k==='goal')?v:+v;
+  save();render();
+}
+function vLearn(){
+  const n=nutri(),G={lose:'ירידה במשקל',abs:'חיטוב בטן',muscle:'בניית שריר',strength:'כוח',fit:'כושר כללי'};
+  let h=`<h1>📚 ידע</h1><div class="chips" style="margin-bottom:12px"><a class="lnk" onclick="document.getElementById('s-nut').scrollIntoView({behavior:'smooth'})">🥗 תזונה</a><a class="lnk" onclick="document.getElementById('s-pro').scrollIntoView({behavior:'smooth'})">🎥 ללמוד מהמומחים</a><a class="lnk" onclick="document.getElementById('s-app').scrollIntoView({behavior:'smooth'})">📱 אפליקציות ואתרים</a></div>`;
+  h+=`<h2 id="s-nut">🥗 התזונה שלך</h2><div class="card">`;
+  if(n){
+    h+=`<div class="mu">לפי ${G[n.goal]}, ${n.kg} ק"ג ו-${(S.profile.days||[]).length||S.settings.goal} אימונים בשבוע</div>
+    <div class="stats" style="margin:10px 0"><div class="stat"><b>${n.kcal.toLocaleString()}</b><span class="mu">קק"ל ביום</span></div><div class="stat"><b>${n.pr}ג׳</b><span class="mu">חלבון</span></div><div class="stat"><b>${n.water}ל׳</b><span class="mu">מים</span></div></div>
+    <div class="vol"><span>חלבון</span><div class="bar"><i style="width:${Math.round(n.pr*4/n.kcal*100)}%"></i></div><span class="mu">${n.pr} ג׳</span></div>
+    <div class="vol"><span>פחמימות</span><div class="bar"><i class="hi" style="width:${Math.round(n.carb*4/n.kcal*100)}%"></i></div><span class="mu">${n.carb} ג׳</span></div>
+    <div class="vol"><span>שומן</span><div class="bar"><i class="lo" style="width:${Math.round(n.fat*9/n.kcal*100)}%"></i></div><span class="mu">${n.fat} ג׳</span></div>
+    <details style="margin-top:8px"><summary class="mu">איך חישבנו?</summary><div class="mu" style="margin-top:6px">חילוף חומרים בסיסי (נוסחת Mifflin-St Jeor): ${n.bmr} קק"ל. כפול רמת פעילות ${n.act}: ${n.tdee} קק"ל לשמירה על המשקל. אחר כך התאמה למטרה. חלבון לפי ק"ג גוף, שומן 0.8 ג׳ לק"ג, והשאר פחמימות.</div></details>
+    <details style="margin-top:6px"><summary class="mu">עדכון הנתונים</summary>${nutriForm()}</details>`;
+  }else h+=`<div class="mu" style="margin-bottom:8px">מלא כמה פרטים, ונחשב לך כמה קלוריות, חלבון ומים מתאימים למטרה שלך:</div>${nutriForm()}`;
+  h+=`</div>`;
+  if(n)h+=`<div class="card"><b>טיפים ל${G[n.goal]}</b><ul class="tips">${(NUT_TIPS[n.goal]||[]).map(t=>`<li>${t}</li>`).join('')}</ul></div>`;
+  h+=`<div class="card"><b>סביב האימון</b><ul class="tips"><li>⏰ <b>1–2 שעות לפני:</b> פחמימה עם מעט חלבון, למשל יוגורט עם בננה, או טוסט עם גבינה</li><li>🍽️ <b>עד כשעתיים אחרי:</b> חלבון ופחמימה, למשל עוף עם אורז, או שייק חלבון עם פרי</li><li>🍗 <b>בכל ארוחה:</b> 20–40 גרם חלבון, מחולק לאורך היום</li><li>😴 <b>שינה:</b> 7–9 שעות. בשינה השריר מתאושש ונבנה</li></ul>
+  <div class="mu">ההמלצות כלליות ואינן תחליף לייעוץ אישי. במצב רפואי, בהריון או בהפרעת אכילה, כדאי להתייעץ עם דיאטנית.</div></div>`;
+  h+=`<h2 id="s-pro">🎥 ללמוד מהמומחים</h2><div class="mu" style="margin-bottom:8px">יוצרי תוכן מוכרים בעולם הכושר. בכרטיס של כל תרגיל (ℹ️) יש קישור ישיר לסרטונים שלהם על אותו תרגיל.</div>`
+   +CREATORS.map(c=>`<div class="card"><b>${esc(c.n)}</b><div class="mu" style="margin:2px 0 8px">${esc(c.d)}</div><div class="row" style="flex-wrap:wrap"><a class="lnk" target="_blank" rel="noopener" href="https://www.youtube.com/@${c.yt}">▶️ YouTube</a><a class="lnk" target="_blank" rel="noopener" href="https://www.instagram.com/${c.ig}/">📸 Instagram</a><a class="lnk" target="_blank" rel="noopener" href="https://www.tiktok.com/search?q=${encodeURIComponent(c.n)}">🎵 TikTok</a></div></div>`).join('');
+  h+=`<h2 id="s-app">📱 אפליקציות ואתרים מומלצים</h2><div class="mu" style="margin-bottom:8px">המלצות כלליות, ללא שיתוף פעולה מסחרי.</div>`
+   +APPS.map(a=>`<a class="card applnk" target="_blank" rel="noopener" href="${a.u}"><div class="row sp"><b>${esc(a.n)}</b><span class="mu">${a.t}</span></div><div class="mu">${esc(a.d)}</div></a>`).join('');
+  if(PARTNERS.length)h+=`<h2>🤝 שותפים</h2>`+PARTNERS.map(a=>`<a class="card applnk" target="_blank" rel="noopener" href="${a.u}"><b>${esc(a.n)}</b><div class="mu">${esc(a.d)}</div>${a.code?`<div class="sug">🎁 קוד הטבה: <b>${esc(a.code)}</b></div>`:''}</a>`).join('');
+  return h;
+}
+
+/* =====================================================================
+   חשבון Google וסנכרון בענן: הנתונים נשמרים בתיקייה מוסתרת (appDataFolder) ב-Google Drive של המשתמש.
+   אין שרת: רק האפליקציה, עם ההרשאה שהמשתמש נותן, יכולה לקרוא ולכתוב לקובץ הזה
+   ===================================================================== */
+let GTOK=null,syncing=false;
+const SYNC_SCOPES='openid email profile https://www.googleapis.com/auth/drive.appdata';
+const DRIVE='https://www.googleapis.com/drive/v3/files',DRIVE_UP='https://www.googleapis.com/upload/drive/v3/files';
+function accountCard(){
+  const a=S.account;
+  if(a)return `<div class="card"><div class="row">${a.pic?`<img src="${esc(a.pic)}" alt="" referrerpolicy="no-referrer" style="width:44px;height:44px;border-radius:50%">`:'<span style="font-size:34px">👤</span>'}<div class="grow"><b>${esc(a.name||'')}</b><div class="mu" dir="ltr" style="text-align:right">${esc(a.email||'')}</div></div></div>
+   <div class="mu" style="margin:8px 0">☁️ הנתונים מגובים ב-Google Drive שלך ומסונכרנים בין המכשירים. ${S.settings.lastCloud?'סנכרון אחרון: '+new Date(S.settings.lastCloud).toLocaleString('he-IL'):''}</div>
+   <div class="row"><button class="pri grow" onclick="cloudSync()">🔄 סנכרן עכשיו</button><button onclick="gLogout()">התנתק</button></div></div>`;
+  return `<div class="card"><b>👤 חשבון וגיבוי בענן</b><div class="mu" style="margin:4px 0 8px">התחבר עם Google כדי לגבות את הנתונים ולהשתמש באפליקציה בטלפון ובמחשב. הנתונים נשמרים בתיקייה מוסתרת ב-Google Drive שלך, ורק האפליקציה יכולה לגשת אליה.</div>
+   ${S.settings.gid?'':`<input id="gid2" dir="ltr" placeholder="Google OAuth Client ID" style="margin-bottom:8px">`}
+   <button class="pri" style="width:100%" onclick="gLogin()">התחבר עם Google</button></div>`;
+}
+async function gToken(scope){
+  const id=(((document.getElementById('gid2')||{}).value)||S.settings.gid||'').trim();
+  if(!id)throw new Error('noid');
+  S.settings.gid=id;save();
+  await loadGIS();
+  return new Promise((res,rej)=>google.accounts.oauth2.initTokenClient({client_id:id,scope,callback:r=>r.error?rej(new Error(r.error)):res(r),error_callback:e=>rej(new Error((e&&e.type)||'popup'))}).requestAccessToken({prompt:''}));
+}
+const setTok=r=>{GTOK={t:r.access_token,exp:Date.now()+((+r.expires_in||3600)-60)*1000}};
+async function gLogin(){
+  try{
+    setTok(await gToken(SYNC_SCOPES));
+    const u=await gFetch(GTOK.t,'https://www.googleapis.com/oauth2/v3/userinfo');
+    S.account={name:u.name,email:u.email,pic:u.picture};save();render();
+    await cloudSync();
+  }catch(e){toast(e.message==='noid'?'צריך קודם Client ID של Google. ההסבר בהגדרות, בחלק של היומן':'ההתחברות נכשלה או בוטלה')}
+}
+function gLogout(){
+  if(!confirm('להתנתק? הנתונים יישארו במכשיר הזה ובגיבוי ב-Google Drive.'))return;
+  try{GTOK&&google.accounts.oauth2.revoke(GTOK.t)}catch(e){}
+  GTOK=null;delete S.account;save();render();
+}
+async function driveFind(t){const r=await gFetch(t,`${DRIVE}?spaces=appDataFolder&q=${encodeURIComponent("name='gymtrack.json'")}&fields=files(id,modifiedTime)`);return (r.files||[])[0]||null}
+async function driveRead(t,id){const r=await fetch(`${DRIVE}/${id}?alt=media`,{headers:{Authorization:'Bearer '+t}});if(!r.ok)throw new Error('http '+r.status);return r.json()}
+async function driveWrite(t,id,obj){
+  const body=JSON.stringify(obj);
+  if(id){const r=await fetch(`${DRIVE_UP}/${id}?uploadType=media`,{method:'PATCH',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},body});if(!r.ok)throw new Error('http '+r.status);return}
+  const b='gt'+Date.now(),meta=JSON.stringify({name:'gymtrack.json',parents:['appDataFolder']});
+  const r=await fetch(`${DRIVE_UP}?uploadType=multipart`,{method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'multipart/related; boundary='+b},body:`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${b}--`});
+  if(!r.ok)throw new Error('http '+r.status);
+}
+/* silent: סנכרון ברקע (אחרי אימון) רק אם יש הרשאה בתוקף, בלי לפתוח חלון התחברות */
+async function cloudSync(silent){
+  if(syncing||!S.account)return;
+  try{
+    if(!GTOK||Date.now()>GTOK.exp){if(silent)return;setTok(await gToken(SYNC_SCOPES))}
+    syncing=true;
+    const f=await driveFind(GTOK.t);
+    if(f){const remote=await driveRead(GTOK.t,f.id);S=normalize(mergeStates(S,remote))}
+    S.settings.lastCloud=Date.now();save();
+    const up=JSON.parse(JSON.stringify(S));delete up.current; // אימון פעיל נשאר במכשיר
+    await driveWrite(GTOK.t,f&&f.id,up);
+    render();if(!silent)toast('☁️ סונכרן עם Google Drive');
+  }catch(e){if(!silent)toast('הסנכרון נכשל ('+e.message+')')}
+  finally{syncing=false}
+}
+/* מיזוג שני מכשירים בלי לאבד נתונים:
+   - תרגילים: כל מכשיר יוצר מזהים משלו לאותו תרגיל, לכן מתאימים לפי שם ומתרגמים מזהים
+   - אימונים ותוכניות: איחוד לפי מזהה. באימון שנערך בשני המכשירים, הגרסה שעודכנה אחרונה מנצחת
+   - מחיקות נשמרות ברשימה (deleted), כדי שאימון שנמחק לא יחזור מהמכשיר השני */
+function mergeStates(L,R){
+  if(!R||!R.exercises)return L;
+  R=JSON.parse(JSON.stringify(R));L=JSON.parse(JSON.stringify(L));
+  const rNewer=(R.savedAt||0)>(L.savedAt||0),newer=rNewer?R:L,older=rNewer?L:R;
+  const lBy=Object.fromEntries(L.exercises.map(e=>[e.name,e])),map={},exs=L.exercises.slice();
+  R.exercises.forEach(e=>{const l=lBy[e.name];if(l){if(l.id!==e.id)map[e.id]=l.id}else if(!exs.some(x=>x.id===e.id))exs.push(e)});
+  const mid=id=>map[id]||id;
+  (R.workouts||[]).forEach(w=>(w.entries||[]).forEach(en=>en.exId=mid(en.exId)));
+  (R.plans||[]).forEach(p=>(p.items||[]).forEach(it=>it.ex=mid(it.ex)));
+  const dl=k=>[...new Set([...((L.deleted||{})[k]||[]),...((R.deleted||{})[k]||[])])];
+  const deleted={w:dl('w'),p:dl('p')};
+  const ver=w=>w.mod||w.end||w.start||0;
+  const wm=new Map();(L.workouts||[]).forEach(w=>wm.set(w.id,w));(R.workouts||[]).forEach(w=>{const o=wm.get(w.id);if(!o||ver(w)>ver(o))wm.set(w.id,w)});
+  const pm=new Map();(older.plans||[]).forEach(p=>pm.set(p.id,p));(newer.plans||[]).forEach(p=>pm.set(p.id,p));
+  const bm=new Map();(older.body||[]).forEach(b=>bm.set(b.d,b));(newer.body||[]).forEach(b=>bm.set(b.d,b));
+  const water={...(older.water||{})};Object.entries(newer.water||{}).forEach(([d,n])=>water[d]=Math.max(n,water[d]||0));
+  const cal=[...(newer.cal||[])];(older.cal||[]).forEach(e=>{if(!cal.some(c=>c.title===e.title&&c.start===e.start))cal.push(e)});
+  return {...newer,exercises:exs,
+    workouts:[...wm.values()].filter(w=>!deleted.w.includes(w.id)).sort((a,b)=>a.start-b.start),
+    plans:[...pm.values()].filter(p=>!deleted.p.includes(p.id)),
+    body:[...bm.values()].sort((a,b)=>a.d<b.d?-1:1),water,cal,deleted,
+    settings:{...older.settings,...newer.settings,gid:L.settings.gid||R.settings.gid,lastCloud:L.settings.lastCloud},
+    profile:newer.profile||older.profile,skipQuiz:L.skipQuiz||R.skipQuiz,
+    account:L.account,current:L.current,savedAt:Math.max(L.savedAt||0,R.savedAt||0)};
+}
+const tomb=(k,id)=>{S.deleted=S.deleted||{w:[],p:[]};if(!S.deleted[k].includes(id))S.deleted[k].push(id)};
+
 /* ---------- shell ---------- */
-const TABS=[['today','🏋️','אימון'],['plans','📋','תוכניות'],['progress','📈','התקדמות'],['settings','⚙️','הגדרות']];
+const TABS=[['today','🏋️','אימון'],['plans','📋','תוכניות'],['progress','📈','התקדמות'],['learn','📚','ידע'],['settings','⚙️','הגדרות']];
 function render(){
   if(PL&&!S.current){PL=null;clearInterval(plIv)}
   document.body.classList.toggle('playing',!!PL);document.body.classList.toggle('quiz',tab==='quiz'&&!PL);
-  document.getElementById('app').innerHTML=PL?vPlayer():({today:vToday,plans:vPlans,progress:vProgress,settings:vSettings,quiz:vQuiz}[tab]||vToday)();
+  document.getElementById('app').innerHTML=PL?vPlayer():({today:vToday,plans:vPlans,progress:vProgress,settings:vSettings,quiz:vQuiz,learn:vLearn}[tab]||vToday)();
   document.getElementById('nav').innerHTML=TABS.map(([k,i,l])=>`<button class="${tab===k?'on':''}" onclick="tab='${k}';render();scrollTo(0,0)"><b>${i}</b>${l}</button>`).join('');
   syncWakeLock();
 }
