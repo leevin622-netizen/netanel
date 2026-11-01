@@ -111,7 +111,7 @@ ul.errs li::marker{content:'⚠️ '}
 .lvl.me{border-color:var(--ac)}.lvl b{font-size:14px}.lvl span{font-size:14px;color:var(--mu)}
 .lnk{display:inline-block;background:var(--card);color:var(--tx);text-decoration:none;border-radius:99px;padding:7px 12px;font-size:14px}
 /* נגן דינמי: כניסה, פעימה, הפסקה נושמת, מאמן מתחלף ומד קצב */
-@keyframes plIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes plIn{from{opacity:.25;transform:translateY(14px)}to{opacity:1;transform:none}}
 .pl.anim>*{animation:plIn .42s cubic-bezier(.2,.8,.2,1) both}
 .pl.anim>*:nth-child(2){animation-delay:.04s}.pl.anim>*:nth-child(3){animation-delay:.08s}.pl.anim>*:nth-child(4){animation-delay:.12s}
 .pl.anim>*:nth-child(5){animation-delay:.16s}.pl.anim>*:nth-child(6){animation-delay:.2s}.pl.anim>*:nth-child(n+7){animation-delay:.24s}
@@ -132,6 +132,8 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:40}
 ul.tips{margin:6px 0;padding-inline-start:20px}ul.tips li{margin:6px 0;line-height:1.5}
 a.applnk{display:block;color:var(--tx);text-decoration:none}
 nav button{font-size:11px}
+/* במצב בהיר: רקע הפסקה בהיר ורך במקום הגרדיאנט הכהה */
+@media (prefers-color-scheme:light){.pl.rest{background:linear-gradient(160deg,hsl(var(--rh) 80% 90%),var(--bg) 55%,hsl(calc(var(--rh) + 50) 70% 91%));background-size:220% 220%}}
 @media (prefers-reduced-motion:reduce){.pl.anim>*,.ring.pulse,.pl.rest,.breath,.pl .pri.big.go{animation:none}}
 </style>
 </head>
