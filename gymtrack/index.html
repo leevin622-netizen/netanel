@@ -405,6 +405,8 @@ function normalize(s){
   // מיגרציה: פריטי תוכנית -> {ex,ph}
   s.plans.forEach(p=>p.items=p.items.map(i=>typeof i==='string'?{ex:i,ph:'m'}:i));
   s.cal=s.cal||[];s.body=s.body||[];s.water=s.water||{};s.deleted=s.deleted||{w:[],p:[]};
+  // מזהה הלקוח של GymTrack ב-Google (לא סודי: מוגבל לכתובת האתר). מאפשר התחברות בלי הגדרה ידנית
+  if(!s.settings.gid)s.settings.gid='1087321152995-3ognh9q8dqs177998uvm0ogg4mia4g7i.apps.googleusercontent.com';
   return s;
 }
 /* ---------- אחסון: localStorage + עותק ב-IndexedDB, ובקשת אחסון קבוע ---------- */
