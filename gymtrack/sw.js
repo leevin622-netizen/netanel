@@ -1,7 +1,7 @@
 /* Service worker: האפליקציה עובדת גם בלי אינטרנט.
    קבצי האפליקציה: קודם מהרשת (כדי לקבל עדכונים), ואם אין רשת מהמטמון.
    בקשות לשרתים אחרים (Google) לא נשמרות במטמון. */
-const CACHE = 'gymtrack-v12';
+const CACHE = 'gymtrack-v13';
 const SHELL = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -17,12 +17,15 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  /* רשת קודם, אבל אם היא איטית (חדר כושר עם קליטה חלשה) יותר מ-4 שניות, מציגים מיד מהמטמון והעדכון ממשיך ברקע */
+  const net = fetch(req).then(res => {
+    if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
+    return res;
+  });
+  const slow = new Promise(r => setTimeout(() => r(null), 4000));
   e.respondWith(
-    fetch(req)
-      .then(res => {
-        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
-        return res;
-      })
+    Promise.race([net, slow])
+      .then(res => res || caches.match(req, { ignoreSearch: true }).then(c => c || net))
       .catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match('index.html')))
   );
 });

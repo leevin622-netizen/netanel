@@ -1114,6 +1114,7 @@ function vSettings(){
   <label class="row sp"><span>מצב מתקדם<div class="mu">סופרסטים, טמפו, RPE יעד והערות לכל תרגיל בעורך התוכנית</div></span><input type="checkbox" style="width:auto" ${S.settings.adv?'checked':''} onchange="S.settings.adv=this.checked;save()"></label><br>
   <label class="row sp"><span>מד קצב בנגן<div class="mu">כדור שעולה ויורד לפי הטמפו וסופר חזרות</div></span><input type="checkbox" style="width:auto" ${S.settings.pacer!==false?'checked':''} onchange="S.settings.pacer=this.checked;save()"></label><br>
   <div class="row sp"><span>זמן מנוחה (שניות)</span><input type="number" style="width:90px" value="${S.settings.rest}" onchange="S.settings.rest=+this.value||90;save()"></div><br>
+  <div class="row sp"><span>משקל המוט<div class="mu">למחשבון הצלחות בנגן</div></span><select style="width:150px" onchange="S.settings.bar=+this.value;save();render()">${[[20,'אולימפי 20 ק"ג'],[15,'מוט 15 ק"ג'],[10,'מוט קצר 10 ק"ג']].map(([v,l])=>`<option value="${v}" ${v===(+S.settings.bar||20)?'selected':''}>${l}</option>`).join('')}</select></div><br>
   <div class="row sp"><span>יעד אימונים בשבוע</span><input type="number" style="width:90px" value="${S.settings.goal}" onchange="S.settings.goal=+this.value||3;save()"></div><br>
   <div class="row sp"><span>מטרה<div class="mu">קובעת את טווח החזרות ואת יעד הנפח</div></span><select style="width:150px" onchange="S.settings.goalType=this.value;save();render()">${Object.entries(GOALS).map(([k,v])=>`<option value="${k}" ${k===(S.settings.goalType||'hyp')?'selected':''}>${v.l} (${v.min}–${v.max})</option>`).join('')}</select></div><br>
   <div class="row sp"><span>שבוע הקלה<div class="mu">משקל מופחת ופחות סטים, להתאוששות</div></span><select style="width:150px" onchange="S.settings.deload=+this.value;save();render()">${[[4,'כל שבוע רביעי'],[5,'כל שבוע חמישי'],[6,'כל שבוע שישי'],[0,'כבוי']].map(([v,l])=>`<option value="${v}" ${v===(S.settings.deload??4)?'selected':''}>${l}</option>`).join('')}</select></div><br>
@@ -1612,16 +1613,17 @@ function plPause(){
   render();
 }
 function plAdj(f,d){const c=cur(),s=c.s;if(f==='r')s.r=Math.max(1,(+s.r||0)+d);else s.w=Math.max(0,Math.round(((+s.w||0)+d)*2)/2);save();render()}
-/* מחשבון צלחות: מוט אולימפי 20 ק"ג, צלחות בכל צד לפי המשקל שנבחר */
+/* מחשבון צלחות: משקל המוט מההגדרות (ברירת מחדל 20 ק"ג), צלחות בכל צד לפי המשקל שנבחר */
 function platesFor(total,bar){
   let side=(total-bar)/2;if(!(side>0))return null;
   const out=[];for(const p of [25,20,15,10,5,2.5,1.25]){while(side+1e-6>=p){out.push(p);side-=p}}
   return side<.05?out:null;
 }
 function plateLine(e,s){
-  if(figSpec(e).eq!=='bar'||!(+s.w>20))return '';
-  const pl=platesFor(+s.w,20);
-  return `<div class="mu" style="text-align:center;margin-top:4px">🏋️ מוט 20 + כל צד: ${pl&&pl.length?pl.join(' + '):'משקל לא מדויק לצלחות רגילות'}</div>`;
+  const bar=+S.settings.bar||20;
+  if(figSpec(e).eq!=='bar'||!(+s.w>bar))return '';
+  const pl=platesFor(+s.w,bar);
+  return `<div class="mu" style="text-align:center;margin-top:4px">🏋️ מוט ${bar} + כל צד:${pl&&pl.length?pl.join(' + '):'משקל לא מדויק לצלחות רגילות'}</div>`;
 }
 function plPacer(){S.settings.pacer=S.settings.pacer===false;save();render()}
 function plFinish(){playerClose();finishWorkout()}
