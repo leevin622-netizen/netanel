@@ -1210,8 +1210,9 @@ function vSettings(){
   ${up.length?`<h2 style="font-size:15px">אירועים קרובים</h2>`+up.slice(0,12).map(e=>`<div class="row sp" style="margin:6px 0"><span>${kindIcon(e.kind)} ${esc(e.title)} <span class="mu">${e.start===e.end?e.start:e.start+' – '+e.end}</span></span><button class="sm dg" onclick="calDel('${e.id}')">הסר</button></div>`).join(''):''}
   </div>
   <h2>גיבוי נתונים</h2><div class="card"><div class="mu" style="margin-bottom:8px">הנתונים נשמרים רק במכשיר הזה. ${S.settings.persisted?'✅ הדפדפן אישר אחסון קבוע.':'⚠️ הדפדפן עדיין לא אישר אחסון קבוע. כדי שהנתונים לא יימחקו, התקן את האפליקציה למסך הבית (באייפון: שיתוף ← הוסף למסך הבית).'}<br>גיבוי אחרון: ${S.settings.lastBackup?fmtDate(S.settings.lastBackup):'אף פעם'}</div>
-  <div class="row" style="flex-wrap:wrap"><button onclick="exportJSON()">ייצוא JSON</button><button onclick="exportCSV()">ייצוא CSV</button><button onclick="exportBodyCSV()">ייצוא מדידות גוף</button><button onclick="document.getElementById('imp').click()">ייבוא</button></div>
-  <input id="imp" type="file" accept=".json" hidden onchange="importJSON(this.files[0])"></div>
+  <div class="row" style="flex-wrap:wrap"><button onclick="exportJSON()">ייצוא JSON</button><button onclick="exportCSV()">ייצוא CSV</button><button onclick="exportBodyCSV()">ייצוא מדידות גוף</button><button onclick="document.getElementById('imp').click()">ייבוא</button><button onclick="document.getElementById('impb').click()">ייבוא מדידות גוף</button></div>
+  <input id="imp" type="file" accept=".json" hidden onchange="importJSON(this.files[0])">
+  <input id="impb" type="file" accept=".csv,text/csv" hidden onchange="importBodyCSV(this.files[0])"></div>
   <h2>נתוני דוגמה</h2><div class="card"><button onclick="seed()">טען 6 שבועות של נתוני דוגמה</button> <button class="dg" onclick="wipe()">מחק הכל</button></div>`;
 }
 function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click()}
@@ -1235,6 +1236,59 @@ function exportBodyCSV(){
 function csvDl(name,rows){
   const cell=c=>typeof c==='number'?String(c):`"${(/^[=+\-@]/.test(String(c))?"'":'')+String(c).replace(/"/g,'""')}"`;
   dl(name,'﻿'+rows.map(r=>r.map(cell).join(',')).join('\r\n'),'text/csv;charset=utf-8');
+}
+/* ייבוא מדידות גוף מ-CSV (אותו מבנה כמו הייצוא, וגם קובץ שנערך באקסל): ממזג לפי תאריך.
+   ערך בקובץ מעדכן ערך קיים באותו תאריך, תא ריק לא מוחק כלום */
+function parseCSV(t){
+  t=t.replace(/^﻿/,'');
+  const first=t.split(/\r?\n/,1)[0],sep=[',',';','\t'].map(s=>[s,first.split(s).length]).sort((a,b)=>b[1]-a[1])[0][0];
+  const rows=[];let row=[],cur='',q=false;
+  for(let i=0;i<t.length;i++){
+    const c=t[i];
+    if(q){if(c==='"'){if(t[i+1]==='"'){cur+='"';i++}else q=false}else cur+=c}
+    else if(c==='"')q=true;
+    else if(c===sep){row.push(cur);cur=''}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;row.push(cur);cur='';if(row.some(x=>x.trim()))rows.push(row);row=[]}
+    else cur+=c;
+  }
+  row.push(cur);if(row.some(x=>x.trim()))rows.push(row);
+  return {rows,sep};
+}
+function csvDate(s){
+  s=String(s).trim().replace(/^'/,'');let y,m,d,x;
+  if(x=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)){y=+x[1];m=+x[2];d=+x[3]}
+  else if(x=s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2}|\d{4})$/)){d=+x[1];m=+x[2];y=+x[3];if(y<100)y+=2000}
+  else return null;
+  const t=new Date(y,m-1,d);
+  return t.getFullYear()===y&&t.getMonth()===m-1&&t.getDate()===d?`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`:null;
+}
+function importBodyCSV(f){
+  if(!f)return;
+  f.text().then(t=>{
+    const {rows,sep}=parseCSV(t),hi=rows.findIndex(r=>r.some(c=>c.trim().startsWith('תאריך')));
+    if(hi<0)return toast('לא נמצאה עמודת "תאריך" בקובץ');
+    const head=rows[hi].map(c=>c.replace(/\(.*?\)/g,'').trim());
+    const iD=head.findIndex(c=>c.startsWith('תאריך')),iKg=head.findIndex(c=>c.startsWith('משקל')),
+      iG=GIRTH.map(([,l])=>head.findIndex(c=>c.startsWith(l)));
+    if(iKg<0&&iG.every(i=>i<0))return toast('לא נמצאו עמודות של משקל גוף או היקפים');
+    const val=(r,i,lo,hi2)=>{if(i<0||r[i]==null)return null;let s=r[i].trim();if(sep!==',')s=s.replace(',','.');const v=parseFloat(s);return v>=lo&&v<=hi2?Math.round(v*10)/10:null};
+    const ups=[];let skipped=0;
+    rows.slice(hi+1).forEach(r=>{
+      const d=csvDate(r[iD]||'');if(!d){skipped++;return}
+      const u={d,kg:val(r,iKg,20,400),g:{}};GIRTH.forEach(([k],j)=>{const v=val(r,iG[j],5,250);if(v!=null)u.g[k]=v});
+      if(u.kg!=null||Object.keys(u.g).length)ups.push(u);else skipped++;
+    });
+    if(!ups.length)return toast('לא נמצאו מדידות תקינות בקובץ');
+    const has=d=>S.body.some(b=>b.d===d)||S.girth.some(g=>g.d===d),upd=ups.filter(u=>has(u.d)).length;
+    if(!confirm(`לייבא מדידות מ-${ups.length} תאריכים (${ups.length-upd} חדשים${upd?`, ${upd} יעדכנו ערכים קיימים`:''})?${skipped?`\n${skipped} שורות לא תקינות ידולגו.`:''}\nתאים ריקים בקובץ לא מוחקים כלום.`))return;
+    const now=Date.now();
+    ups.forEach(u=>{
+      if(u.kg!=null){S.body=S.body.filter(b=>b.d!==u.d);S.body.push({d:u.d,kg:u.kg})}
+      if(Object.keys(u.g).length){let rec=S.girth.find(g=>g.d===u.d);if(!rec){rec={d:u.d};S.girth.push(rec)}Object.assign(rec,u.g);rec.mod=now}
+    });
+    S.body.sort((a,b)=>a.d<b.d?-1:1);S.girth.sort((a,b)=>a.d<b.d?-1:1);
+    save();render();toast(`יובאו מדידות מ-${ups.length} תאריכים`);
+  }).finally(()=>{const i=document.getElementById('impb');if(i)i.value=''});
 }
 /* ייבוא מחליף את כל הנתונים: מבקשים אישור, ולפני ההחלפה מורידים גיבוי של המצב הנוכחי */
 function importJSON(f){
