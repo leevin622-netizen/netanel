@@ -2573,7 +2573,7 @@ function f3Draw(cv,e,k,yaw,pitch){
   }
   // מסלול התנועה: המפרק שזז הכי הרבה (ובן הזוג שלו), עם חצים בשני הקצוות
   if(!pt.hold)f3Trail(ctx,pt,sp,k,pj,pal);
-  if(r.width>=170&&!cv.classList.contains('pf'))f3Labels(ctx,sp,sk,pj);
+  if(r.width>=170)f3Labels(ctx,sp,sk,pj);
 }
 /* תוויות שמות שרירים עם קו מוביל, כמו בסרטוני ההסבר: עד שני שרירים עיקריים, בצד הקרוב של הדמות */
 const F3MN={chest:'חזה',back:'גב',shoulder:'כתפיים',bi:'דו-ראשי',tri:'תלת-ראשי',fore:'אמות',core:'בטן וליבה',quads:'ארבע-ראשי',hams:'ירך אחורית',glutes:'ישבן',calves:'תאומים'};
