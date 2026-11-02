@@ -424,7 +424,7 @@ function normalize(s){
   s.exercises.forEach(e=>{if(!e.grp)e.grp='אחר'});
   // מיגרציה: פריטי תוכנית -> {ex,ph}
   s.plans.forEach(p=>p.items=p.items.map(i=>typeof i==='string'?{ex:i,ph:'m'}:i));
-  s.cal=s.cal||[];s.body=s.body||[];s.girth=s.girth||[];s.water=s.water||{};s.deleted=s.deleted||{w:[],p:[]};
+  s.cal=s.cal||[];s.body=s.body||[];s.girth=s.girth||[];s.gdel=s.gdel||{};s.water=s.water||{};s.deleted=s.deleted||{w:[],p:[]};
   // מזהה הלקוח של GymTrack ב-Google (לא סודי: מוגבל לכתובת האתר). מאפשר התחברות בלי הגדרה ידנית
   if(!s.settings.gid)s.settings.gid='1087321152995-3ognh9q8dqs177998uvm0ogg4mia4g7i.apps.googleusercontent.com';
   return s;
@@ -1116,14 +1116,20 @@ function girthCard(){
   <div class="mu" style="margin-bottom:8px">${info}</div>${chart(pts,'צריך לפחות 2 מדידות לגרף')}
   <div class="mu" style="margin:10px 0 6px">מדידה להיום (ס"מ, אפשר למלא רק חלק)</div>
   <div class="grid2">${GIRTH.map(([k,l])=>`<label class="mu">${l}<input id="g_${k}" type="number" inputmode="decimal" step="0.1" placeholder="${lastOf(k)}"></label>`).join('')}</div>
-  <button class="pri" style="width:100%" onclick="logGirth()">שמור מדידה</button></div>`;
+  <button class="pri" style="width:100%" onclick="logGirth()">שמור מדידה</button>
+  ${S.girth.length?`<div class="mu" style="margin:12px 0 4px">מדידות אחרונות</div>${[...S.girth].reverse().slice(0,6).map(g=>`<div class="row sp" style="padding:4px 0;border-top:1px solid var(--card2)"><span style="font-size:13px"><b>${fmtDate(new Date(g.d+'T12:00:00').getTime())}</b> <span class="mu">${GIRTH.filter(([k])=>g[k]>0).map(([k,l])=>`${l} <bdi dir="ltr">${g[k]}</bdi>`).join(' · ')}</span></span><button class="sm dg" aria-label="מחק מדידה" onclick="delGirth('${g.d}')">🗑</button></div>`).join('')}`:''}</div>`;
+}
+/* מחיקה משאירה סימן (gdel) עם זמן, כדי שמדידה שנמחקה לא תחזור מהמכשיר השני; מדידה חדשה באותו יום מנצחת אם היא אחרי המחיקה */
+function delGirth(d){
+  if(!confirm('למחוק את המדידה מ-'+fmtDate(new Date(d+'T12:00:00').getTime())+'?'))return;
+  S.girth=S.girth.filter(g=>g.d!==d);S.gdel[d]=Date.now();save();render();
 }
 function logGirth(){
   const d=ymd(Date.now());let rec=S.girth.find(g=>g.d===d),n=0;
   GIRTH.forEach(([k])=>{const v=parseFloat(document.getElementById('g_'+k).value);
     if(v>=5&&v<=250){if(!rec){rec={d};S.girth.push(rec)}rec[k]=Math.round(v*10)/10;n++}});
   if(!n)return toast('הזן לפחות מדידה אחת בס"מ');
-  S.girth.sort((a,b)=>a.d<b.d?-1:1);save();render();toast(`📏 נשמרו ${n} מדידות`);
+  rec.mod=Date.now();S.girth.sort((a,b)=>a.d<b.d?-1:1);save();render();toast(`📏 נשמרו ${n} מדידות`);
 }
 function chart(p,msg){
   if(p.length<2)return `<div class="empty">${msg||'צריך לפחות 2 אימונים לגרף'}</div>`;
@@ -1963,13 +1969,15 @@ function mergeStates(L,R){
   const wm=new Map();(L.workouts||[]).forEach(w=>wm.set(w.id,w));(R.workouts||[]).forEach(w=>{const o=wm.get(w.id);if(!o||ver(w)>ver(o))wm.set(w.id,w)});
   const pm=new Map();(older.plans||[]).forEach(p=>pm.set(p.id,p));(newer.plans||[]).forEach(p=>pm.set(p.id,p));
   const bm=new Map();(older.body||[]).forEach(b=>bm.set(b.d,b));(newer.body||[]).forEach(b=>bm.set(b.d,b));
-  const gm=new Map();[...(older.girth||[]),...(newer.girth||[])].forEach(g=>gm.set(g.d,{...(gm.get(g.d)||{}),...g}));
+  const gdel={...(older.gdel||{})};Object.entries(newer.gdel||{}).forEach(([d,t])=>gdel[d]=Math.max(t,gdel[d]||0));
+  const gm=new Map();[...(older.girth||[]),...(newer.girth||[])].forEach(g=>gm.set(g.d,{...(gm.get(g.d)||{}),...g,mod:Math.max(g.mod||0,(gm.get(g.d)||{}).mod||0)}));
+  [...gm.keys()].forEach(d=>{if(gdel[d]&&(gm.get(d).mod||0)<=gdel[d])gm.delete(d)});
   const water={...(older.water||{})};Object.entries(newer.water||{}).forEach(([d,n])=>water[d]=Math.max(n,water[d]||0));
   const cal=[...(newer.cal||[])];(older.cal||[]).forEach(e=>{if(!cal.some(c=>c.title===e.title&&c.start===e.start))cal.push(e)});
   return {...newer,exercises:exs,
     workouts:[...wm.values()].filter(w=>!deleted.w.includes(w.id)).sort((a,b)=>a.start-b.start),
     plans:[...pm.values()].filter(p=>!deleted.p.includes(p.id)),
-    body:[...bm.values()].sort((a,b)=>a.d<b.d?-1:1),girth:[...gm.values()].sort((a,b)=>a.d<b.d?-1:1),water,cal,deleted,
+    body:[...bm.values()].sort((a,b)=>a.d<b.d?-1:1),girth:[...gm.values()].sort((a,b)=>a.d<b.d?-1:1),gdel,water,cal,deleted,
     settings:{...older.settings,...newer.settings,gid:L.settings.gid||R.settings.gid,lastCloud:L.settings.lastCloud},
     profile:newer.profile||older.profile,skipQuiz:L.skipQuiz||R.skipQuiz,
     account:L.account,current:L.current,savedAt:Math.max(L.savedAt||0,R.savedAt||0)};
