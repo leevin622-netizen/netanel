@@ -1167,7 +1167,7 @@ function vSettings(){
   ${up.length?`<h2 style="font-size:15px">אירועים קרובים</h2>`+up.slice(0,12).map(e=>`<div class="row sp" style="margin:6px 0"><span>${kindIcon(e.kind)} ${esc(e.title)} <span class="mu">${e.start===e.end?e.start:e.start+' – '+e.end}</span></span><button class="sm dg" onclick="calDel('${e.id}')">הסר</button></div>`).join(''):''}
   </div>
   <h2>גיבוי נתונים</h2><div class="card"><div class="mu" style="margin-bottom:8px">הנתונים נשמרים רק במכשיר הזה. ${S.settings.persisted?'✅ הדפדפן אישר אחסון קבוע.':'⚠️ הדפדפן עדיין לא אישר אחסון קבוע. כדי שהנתונים לא יימחקו, התקן את האפליקציה למסך הבית (באייפון: שיתוף ← הוסף למסך הבית).'}<br>גיבוי אחרון: ${S.settings.lastBackup?fmtDate(S.settings.lastBackup):'אף פעם'}</div>
-  <div class="row" style="flex-wrap:wrap"><button onclick="exportJSON()">ייצוא JSON</button><button onclick="exportCSV()">ייצוא CSV</button><button onclick="document.getElementById('imp').click()">ייבוא</button></div>
+  <div class="row" style="flex-wrap:wrap"><button onclick="exportJSON()">ייצוא JSON</button><button onclick="exportCSV()">ייצוא CSV</button><button onclick="exportBodyCSV()">ייצוא מדידות גוף</button><button onclick="document.getElementById('imp').click()">ייבוא</button></div>
   <input id="imp" type="file" accept=".json" hidden onchange="importJSON(this.files[0])"></div>
   <h2>נתוני דוגמה</h2><div class="card"><button onclick="seed()">טען 6 שבועות של נתוני דוגמה</button> <button class="dg" onclick="wipe()">מחק הכל</button></div>`;
 }
@@ -1178,8 +1178,20 @@ function exportCSV(){
   const num=v=>v==null||v===''||isNaN(+v)?'':+v;
   const rows=[['תאריך','אימון','שלב','תרגיל','סט','משקל (ק"ג)','חזרות','נפח (ק"ג×חזרות)','שניות','דקות','ק"מ']];
   [...S.workouts].sort((a,b)=>a.start-b.start).forEach(w=>w.entries.forEach(e=>e.sets.forEach((s,i)=>rows.push([ymd(w.start),w.name,ph(e)==='w'?'חימום':'עיקרי',ex(e.exId).name,i+1,num(s.w),num(s.r),(+s.w>0&&+s.r>0)?Math.round(s.w*s.r*100)/100:'',num(s.sec),num(s.min),num(s.km)]))));
+  csvDl(`gymtrack-${ymd(Date.now())}.csv`,rows);
+}
+/* מדידות גוף: שורה לכל תאריך עם משקל גוף והיקפים (ס"מ), רק מה שנמדד באותו יום */
+function exportBodyCSV(){
+  if(!S.body.length&&!S.girth.length)return toast('עוד אין מדידות גוף לייצוא');
+  const byD={};S.body.forEach(b=>(byD[b.d]=byD[b.d]||{}).kg=b.kg);S.girth.forEach(g=>Object.assign(byD[g.d]=byD[g.d]||{},g));
+  const num=v=>v==null||v===''||isNaN(+v)?'':+v;
+  const rows=[['תאריך','משקל גוף (ק"ג)',...GIRTH.map(([,l])=>l+' (ס"מ)')]];
+  Object.keys(byD).sort().forEach(d=>rows.push([d,num(byD[d].kg),...GIRTH.map(([k])=>num(byD[d][k]))]));
+  csvDl(`gymtrack-body-${ymd(Date.now())}.csv`,rows);
+}
+function csvDl(name,rows){
   const cell=c=>typeof c==='number'?String(c):`"${(/^[=+\-@]/.test(String(c))?"'":'')+String(c).replace(/"/g,'""')}"`;
-  dl(`gymtrack-${ymd(Date.now())}.csv`,'﻿'+rows.map(r=>r.map(cell).join(',')).join('\r\n'),'text/csv;charset=utf-8');
+  dl(name,'﻿'+rows.map(r=>r.map(cell).join(',')).join('\r\n'),'text/csv;charset=utf-8');
 }
 /* ייבוא מחליף את כל הנתונים: מבקשים אישור, ולפני ההחלפה מורידים גיבוי של המצב הנוכחי */
 function importJSON(f){
