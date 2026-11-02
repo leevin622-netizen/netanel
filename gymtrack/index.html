@@ -1141,9 +1141,12 @@ function vSettings(){
 function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click()}
 function exportJSON(){dl(`gymtrack-backup-${ymd(Date.now())}.json`,JSON.stringify(S),'application/json');S.settings.lastBackup=Date.now();save();render()}
 function exportCSV(){
-  const rows=[['date','workout','phase','exercise','set','weight_kg','reps','seconds','minutes','km']];
-  S.workouts.forEach(w=>w.entries.forEach(e=>e.sets.forEach((s,i)=>rows.push([new Date(w.start).toISOString().slice(0,10),w.name,ph(e)==='w'?'warmup':'main',ex(e.exId).name,i+1,s.w??'',s.r??'',s.sec??'',s.min??'',s.km??'']))));
-  dl('gymtrack.csv','﻿'+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'),'text/csv');
+  /* עמודות בעברית לאקסל; תאריך מקומי (לא UTC, שהזיז אימוני לילה ליום אחר); מספרים בלי מרכאות כדי שאקסל יזהה אותם */
+  const num=v=>v==null||v===''||isNaN(+v)?'':+v;
+  const rows=[['תאריך','אימון','שלב','תרגיל','סט','משקל (ק"ג)','חזרות','נפח (ק"ג×חזרות)','שניות','דקות','ק"מ']];
+  [...S.workouts].sort((a,b)=>a.start-b.start).forEach(w=>w.entries.forEach(e=>e.sets.forEach((s,i)=>rows.push([ymd(w.start),w.name,ph(e)==='w'?'חימום':'עיקרי',ex(e.exId).name,i+1,num(s.w),num(s.r),(+s.w>0&&+s.r>0)?Math.round(s.w*s.r*100)/100:'',num(s.sec),num(s.min),num(s.km)]))));
+  const cell=c=>typeof c==='number'?String(c):`"${(/^[=+\-@]/.test(String(c))?"'":'')+String(c).replace(/"/g,'""')}"`;
+  dl(`gymtrack-${ymd(Date.now())}.csv`,'﻿'+rows.map(r=>r.map(cell).join(',')).join('\r\n'),'text/csv;charset=utf-8');
 }
 /* ייבוא מחליף את כל הנתונים: מבקשים אישור, ולפני ההחלפה מורידים גיבוי של המצב הנוכחי */
 function importJSON(f){
