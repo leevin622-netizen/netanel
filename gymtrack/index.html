@@ -442,6 +442,47 @@ function save(){
   const json=JSON.stringify(S);
   let ok=false;try{localStorage.setItem(KEY,json);ok=true}catch(e){}
   idb('readwrite',st=>st.put(json,KEY)).catch(()=>{if(!ok)toast('שמירה נכשלה')});
+  syncRemind();
+}
+/* ---------- תזכורת אימון ----------
+   ב-PWA בלי שרת אי אפשר להבטיח התראה בשעה מדויקת. לכן: (1) באנר באפליקציה ביום אימון שעוד לא בוצע,
+   (2) התראה ברקע דרך Periodic Background Sync, רק בכרום באנדרואיד כשהאפליקציה מותקנת, והדפדפן מחליט מתי להריץ.
+   ה-service worker לא רואה את localStorage, לכן ההגדרות והימים נכתבים למטמון נפרד (gymtrack-remind). */
+var _remindSent='';
+const remindOn=()=>!!(S.settings.remind&&S.settings.remind.on);
+const remindHour=()=>{const h=S.settings.remind&&S.settings.remind.hour;return Number.isInteger(h)?h:18};
+const doneToday=()=>{const d=ymd(Date.now());return S.workouts.some(w=>ymd(w.start)===d)};
+function syncRemind(){
+  try{
+    const byDay={};S.plans.forEach(p=>(p.days||[]).forEach(d=>(byDay[d]=byDay[d]||[]).push(p.name)));
+    const last=S.workouts.reduce((m,w)=>Math.max(m,w.start),0);
+    const cfg=JSON.stringify({on:remindOn(),hour:remindHour(),byDay,last:last?ymd(last):''});
+    if(cfg===_remindSent)return;_remindSent=cfg;
+    if(!window.caches||!navigator.serviceWorker)return;
+    caches.open('gymtrack-remind').then(c=>c.put('remind.json',new Response(cfg))).catch(()=>{});
+    navigator.serviceWorker.ready.then(async reg=>{
+      if(!reg.periodicSync)return;
+      if(remindOn()&&window.Notification&&Notification.permission==='granted')await reg.periodicSync.register('gt-remind',{minInterval:6*36e5});
+      else await reg.periodicSync.unregister('gt-remind');
+    }).catch(()=>{});
+  }catch(e){}
+}
+function setRemind(on){
+  S.settings.remind={...(S.settings.remind||{}),on};
+  if(on&&window.Notification&&Notification.permission==='default')Notification.requestPermission().then(()=>{syncRemind();render()}).catch(()=>{});
+  save();render();
+}
+function setRemindHour(v){const h=parseInt(v);if(h>=0&&h<=23){S.settings.remind={...(S.settings.remind||{}),hour:h};save()}}
+function remindBanner(){
+  if(!remindOn()||S.current||doneToday())return '';
+  const ps=S.plans.filter(p=>(p.days||[]).includes(new Date().getDay()));
+  if(!ps.length||new Date().getHours()<remindHour())return '';
+  return `<div class="banner"><b>💪 היום יום אימון</b><div class="mu" style="margin:4px 0 8px">עוד לא התאמנת היום. גם אימון מקוצר נחשב.</div>${ps.map(p=>`<button class="pri sm" onclick="startGuided('${p.id}')">התחל: ${esc(p.name)}</button>`).join(' ')}</div>`;
+}
+function remindStatus(){
+  const bg=typeof ServiceWorkerRegistration!=='undefined'&&'periodicSync' in ServiceWorkerRegistration.prototype;
+  const perm=window.Notification?Notification.permission:'unsupported';
+  return (perm==='denied'?'התראות חסומות בדפדפן. ':perm==='unsupported'?'הדפדפן לא תומך בהתראות. ':'')+(bg?'התראה ברקע נתמכת במכשיר הזה, אבל הדפדפן מחליט מתי לבדוק ולכן היא עשויה להתאחר או לא להגיע. ':'התראה ברקע לא נתמכת במכשיר הזה (למשל באייפון), אז התזכורת תופיע כבאנר כשפותחים את האפליקציה. ');
 }
 /* אם ה-localStorage נמחק (למשל ניקוי של Safari) אבל העותק ב-IndexedDB שרד, משחזרים ממנו */
 async function restoreFromIDB(){
@@ -896,7 +937,7 @@ function vToday(){
   const bk=!S.current&&needsBackup()?`<div class="banner"><b>💾 הגיע הזמן לגבות</b><div class="mu" style="margin:4px 0 8px">${S.settings.lastBackup?'הגיבוי האחרון היה לפני יותר משבועיים':'עוד לא גיבית את הנתונים'}. הנתונים שמורים רק במכשיר הזה, וגיבוי לוקח שנייה.</div><button class="pri sm" onclick="exportJSON()">גבה עכשיו</button> <button class="sm" onclick="S.settings.lastBackup=Date.now()-7*864e5;save();render()">הזכר לי בעוד שבוע</button></div>`:'';
   const dlb=!S.current&&isDeloadWeek(Date.now())?`<div class="banner"><b>🧘 השבוע: שבוע הקלה (שבוע ${weekNo(Date.now())})</b><div class="mu">אחרי כמה שבועות של התקדמות הגוף צריך להתאושש. ההמלצות השבוע יהיו עם כ-10% פחות משקל ופחות סטים. בשבוע הבא חוזרים להתקדם.</div></div>`:'';
   const sy=S.account&&!S.current&&Date.now()-(S.settings.lastCloud||0)>864e5?`<div class="banner"><b>☁️ לסנכרן עם Google Drive?</b><div class="mu" style="margin:4px 0 8px">הסנכרון האחרון היה לפני יותר מיום.</div><button class="pri sm" onclick="cloudSync()">סנכרן עכשיו</button></div>`:"";
-  let h=`<h1>היי${S.account&&S.account.name?" "+esc(S.account.name.split(" ")[0]):""} 👋</h1>${bk}${sy}${dlb}${S.current?'':calBanner()+restTip()}<div class="stats">
+  let h=`<h1>היי${S.account&&S.account.name?" "+esc(S.account.name.split(" ")[0]):""} 👋</h1>${bk}${sy}${dlb}${remindBanner()}${S.current?'':calBanner()+restTip()}<div class="stats">
    <div class="stat"><b>${cnt}/${goal}</b><span class="mu">יעד השבוע${goal<S.settings.goal?' (מותאם ליומן)':''}</span></div>
    <div class="stat"><b>🔥 ${streak()}</b><span class="mu">שבועות ברצף</span></div>
    <div class="stat"><b>${S.workouts.length}</b><span class="mu">אימונים</span></div></div>${S.current?'':dailyCard()}
@@ -1145,6 +1186,8 @@ function vSettings(){
   return `<h1>הגדרות</h1>${accountCard()}<div class="card"><button style="width:100%;margin-bottom:12px" onclick="quizStart()">🧭 שאלון: בנה תכנית מחדש</button>
   <label class="row sp"><span>מצב מתקדם<div class="mu">סופרסטים, טמפו, RPE יעד והערות לכל תרגיל בעורך התוכנית</div></span><input type="checkbox" style="width:auto" ${S.settings.adv?'checked':''} onchange="S.settings.adv=this.checked;save()"></label><br>
   <label class="row sp"><span>מד קצב בנגן<div class="mu">כדור שעולה ויורד לפי הטמפו וסופר חזרות</div></span><input type="checkbox" style="width:auto" ${S.settings.pacer!==false?'checked':''} onchange="S.settings.pacer=this.checked;save()"></label><br>
+  <label class="row sp"><span>תזכורת אימון<div class="mu">בימים הקבועים של התוכניות, אם עוד לא התאמנת. ${remindStatus()}</div></span><input type="checkbox" style="width:auto;flex:none" ${remindOn()?'checked':''} onchange="setRemind(this.checked)"></label><br>
+  ${remindOn()?`<div class="row sp"><span>מאיזו שעה להזכיר</span><input type="time" style="width:110px" value="${String(remindHour()).padStart(2,'0')}:00" onchange="setRemindHour(this.value)"></div><br>`:''}
   <div class="row sp"><span>זמן מנוחה (שניות)</span><input type="number" style="width:90px" value="${S.settings.rest}" onchange="S.settings.rest=+this.value||90;save()"></div><br>
   <div class="row sp"><span>משקל המוט<div class="mu">למחשבון הצלחות בנגן</div></span><select style="width:150px" onchange="S.settings.bar=+this.value;save();render()">${[[20,'אולימפי 20 ק"ג'],[15,'מוט 15 ק"ג'],[10,'מוט קצר 10 ק"ג']].map(([v,l])=>`<option value="${v}" ${v===(+S.settings.bar||20)?'selected':''}>${l}</option>`).join('')}</select></div><br>
   <div class="row sp"><span>יעד אימונים בשבוע</span><input type="number" style="width:90px" value="${S.settings.goal}" onchange="S.settings.goal=+this.value||3;save()"></div><br>
