@@ -863,7 +863,7 @@ async function syncWakeLock(){
     else if(wakeLock){await wakeLock.release();wakeLock=null}
   }catch(e){}
 }
-document.addEventListener('visibilitychange',()=>{syncWakeLock();if(!document.hidden&&S.current&&S.current.restEnd)resumeRest()});
+document.addEventListener('visibilitychange',()=>{syncWakeLock();if(!document.hidden&&typeof figKick==='function')figKick();if(!document.hidden&&S.current&&S.current.restEnd)resumeRest()});
 let tt;function toast(m,undoLabel){
   const t=document.getElementById('toast');t.textContent=m;
   if(undoLabel){const b=document.createElement('button');b.className='sm';b.textContent=undoLabel;b.onclick=doUndo;t.appendChild(b)}
@@ -1070,7 +1070,7 @@ function vProgress(){
   const g=goalCfg(),[lo,hi]=g.vol,vs=weeklySets(startOfWeek(Date.now()));
   const groups=['חזה','גב','כתפיים','ידיים','רגליים','ישבן','בטן וליבה',...Object.keys(vs).filter(k=>!['חזה','גב','כתפיים','ידיים','רגליים','ישבן','בטן וליבה'].includes(k))];
   h+=`<div class="card"><b>נפח השבוע</b><div class="mu" style="margin-bottom:6px">סטים לכל קבוצת שרירים. היעד ל${g.l}: ${lo}–${hi} סטים בשבוע</div>${groups.map(k=>{const n=vs[k]||0;return `<div class="vol"><span>${k}</span><div class="bar"><i class="${n<lo?'lo':n>hi?'hi':''}" style="width:${Math.min(100,n/hi*100)}%"></i></div><span class="mu">${n}/${lo}${n>=lo&&n<=hi?' ✔':''}</span></div>`}).join('')}</div>`;
-  h+=weeksChart();
+  h+=weeksChart()+prBoard(strength);
   if(S.body.length)h+=`<div class="card"><b>משקל גוף</b><div class="mu" style="margin:4px 0 8px">אחרון: ${S.body[S.body.length-1].kg} ק"ג${S.body.length>1?` · שינוי מההתחלה: ${(S.body[S.body.length-1].kg-S.body[0].kg>0?'+':'')+(S.body[S.body.length-1].kg-S.body[0].kg).toFixed(1)} ק"ג`:''}</div>${chart(S.body.map(b=>({t:new Date(b.d+'T12:00:00').getTime(),v:b.kg})))}</div>`;
   if(histEx){
     // תרגיל עם משקל: 1RM משוער. משקל גוף בלבד: מקסימום חזרות. תרגיל זמן: מקסימום שניות
@@ -1090,6 +1090,13 @@ function vProgress(){
     ${w.verdict?`<div class="fb ${w.verdict.t}">${esc(w.verdict.m)}</div>`:''}
     <div class="row"><button class="sm" onclick="editWorkout('${w.id}')">✏️ ערוך</button><button class="sm" onclick="shareWorkout('${w.id}')">📤 שתף</button><button class="sm dg" onclick="delWorkout('${w.id}')">מחק</button></div></div>`}).join('');
   return h;
+}
+/* לוח שיאים אישיים: הסט הטוב ביותר בכל תרגיל כוח, לפי אותו מדד של הגרף */
+function prBoard(list){
+  const rows=list.map(e=>{let best=null;S.workouts.forEach(w=>w.entries.forEach(en=>{if(en.exId!==e.id||ph(en)!=='m')return;en.sets.forEach(s=>{if(!s.done&&s.done!==undefined)return;const v=setScore(e,s);if(v&&(!best||v>best.v))best={v,s,t:w.start}})}));return best&&{e,best}}).filter(Boolean)
+    .sort((a,b)=>b.best.t-a.best.t).slice(0,8);
+  if(!rows.length)return '';
+  return `<div class="card"><b>🏆 שיאים אישיים</b><div class="mu" style="margin:4px 0 6px">הסט הטוב ביותר בכל תרגיל</div>${rows.map(({e,best})=>`<div class="row sp"><span>${esc(e.name)}</span><span class="mu">${fmtSet(e,best.s)} · ${fmtDate(best.t)}</span></div>`).join('')}</div>`;
 }
 function delWorkout(id){if(confirm('למחוק את האימון?')){tomb('w',id);S.workouts=S.workouts.filter(w=>w.id!==id);save();render()}}
 function chart(p){
@@ -1602,6 +1609,17 @@ function plPause(){
   render();
 }
 function plAdj(f,d){const c=cur(),s=c.s;if(f==='r')s.r=Math.max(1,(+s.r||0)+d);else s.w=Math.max(0,Math.round(((+s.w||0)+d)*2)/2);save();render()}
+/* מחשבון צלחות: מוט אולימפי 20 ק"ג, צלחות בכל צד לפי המשקל שנבחר */
+function platesFor(total,bar){
+  let side=(total-bar)/2;if(!(side>0))return null;
+  const out=[];for(const p of [25,20,15,10,5,2.5,1.25]){while(side+1e-6>=p){out.push(p);side-=p}}
+  return side<.05?out:null;
+}
+function plateLine(e,s){
+  if(figSpec(e).eq!=='bar'||!(+s.w>20))return '';
+  const pl=platesFor(+s.w,20);
+  return `<div class="mu" style="text-align:center;margin-top:4px">🏋️ מוט 20 + כל צד: ${pl&&pl.length?pl.join(' + '):'משקל לא מדויק לצלחות רגילות'}</div>`;
+}
 function plPacer(){S.settings.pacer=S.settings.pacer===false;save();render()}
 function plFinish(){playerClose();finishWorkout()}
 /* צבע הטבעת: ירוק, צהוב, אדום ככל שהזמן אוזל. בהפסקה: כחול רגוע שהופך לירוק לקראת הסט */
@@ -1698,6 +1716,7 @@ function vPlayer(){
   ${coach(coachList(c))}
   <div class="stp"><button onclick="plAdj('r',-1)">−</button><b>${s.r||0}</b><button onclick="plAdj('r',1)">+</button></div><div class="mu" style="text-align:center">חזרות</div>
   ${showW?`<div class="stp"><button onclick="plAdj('w',-2.5)">−</button><b style="font-size:40px">${s.w||0}</b><button onclick="plAdj('w',2.5)">+</button></div><div class="mu" style="text-align:center">ק"ג ${s.w>0?'':'(0 = משקל גוף)'}</div>`:''}
+  ${plateLine(c.e,s)}
   ${p?`<div class="mu" style="text-align:center;margin-top:6px">בפעם הקודמת: ${fmtSet(c.e,p)}</div>`:''}
   <button id="pdone" class="pri big" style="margin-top:auto" onclick="plSetDone()">✔ סיימתי סט</button>${nav}</div>`;
 }
@@ -2462,9 +2481,11 @@ let figRAF=0;
 function figLoop(){
   const cvs=document.querySelectorAll('canvas.fig[data-x]');
   if(!cvs.length){figRAF=0;return}
+  if(document.hidden){figRAF=0;return}
   const now=performance.now();F3T=now/1000;
   cvs.forEach((cv,idx)=>{
     const e=ex(cv.dataset.x);if(!e)return;
+    const rc=cv.getBoundingClientRect();if(rc.bottom<0||rc.top>innerHeight)return;
     const pt=FIGP[figSpec(e).p]||FIGP.squat,st=f3State(cv,e);let ph;
     if(cv.dataset.sync&&PL&&PL.st==='work'&&!PL.paused){const c=cur();const [a,b,u]=c?tempoOf(c.en):[2,0,1];ph=figPhase((Date.now()-PL.workStart)/1000,a,b,u,0)}
     else ph=figPhase(now/1000+idx*.7,1.3,.25,1,.45);
