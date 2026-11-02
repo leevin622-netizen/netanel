@@ -421,7 +421,7 @@ function normalize(s){
   s.exercises.forEach(e=>{if(!e.grp)e.grp='אחר'});
   // מיגרציה: פריטי תוכנית -> {ex,ph}
   s.plans.forEach(p=>p.items=p.items.map(i=>typeof i==='string'?{ex:i,ph:'m'}:i));
-  s.cal=s.cal||[];s.body=s.body||[];s.water=s.water||{};s.deleted=s.deleted||{w:[],p:[]};
+  s.cal=s.cal||[];s.body=s.body||[];s.girth=s.girth||[];s.water=s.water||{};s.deleted=s.deleted||{w:[],p:[]};
   // מזהה הלקוח של GymTrack ב-Google (לא סודי: מוגבל לכתובת האתר). מאפשר התחברות בלי הגדרה ידנית
   if(!s.settings.gid)s.settings.gid='1087321152995-3ognh9q8dqs177998uvm0ogg4mia4g7i.apps.googleusercontent.com';
   return s;
@@ -1071,7 +1071,8 @@ function vProgress(){
   const groups=['חזה','גב','כתפיים','ידיים','רגליים','ישבן','בטן וליבה',...Object.keys(vs).filter(k=>!['חזה','גב','כתפיים','ידיים','רגליים','ישבן','בטן וליבה'].includes(k))];
   h+=`<div class="card"><b>נפח השבוע</b><div class="mu" style="margin-bottom:6px">סטים לכל קבוצת שרירים. היעד ל${g.l}: ${lo}–${hi} סטים בשבוע</div>${groups.map(k=>{const n=vs[k]||0;return `<div class="vol"><span>${k}</span><div class="bar"><i class="${n<lo?'lo':n>hi?'hi':''}" style="width:${Math.min(100,n/hi*100)}%"></i></div><span class="mu">${n}/${lo}${n>=lo&&n<=hi?' ✔':''}</span></div>`}).join('')}</div>`;
   h+=weeksChart()+prBoard(strength);
-  if(S.body.length)h+=`<div class="card"><b>משקל גוף</b><div class="mu" style="margin:4px 0 8px">אחרון: ${S.body[S.body.length-1].kg} ק"ג${S.body.length>1?` · שינוי מההתחלה: ${(S.body[S.body.length-1].kg-S.body[0].kg>0?'+':'')+(S.body[S.body.length-1].kg-S.body[0].kg).toFixed(1)} ק"ג`:''}</div>${chart(S.body.map(b=>({t:new Date(b.d+'T12:00:00').getTime(),v:b.kg})))}</div>`;
+  if(S.body.length)h+=`<div class="card"><b>משקל גוף</b><div class="mu" style="margin:4px 0 8px">אחרון: ${S.body[S.body.length-1].kg} ק"ג${S.body.length>1?` · שינוי מההתחלה: <bdi dir="ltr">${(S.body[S.body.length-1].kg-S.body[0].kg>0?'+':'')+(S.body[S.body.length-1].kg-S.body[0].kg).toFixed(1)}</bdi> ק"ג`:''}</div>${chart(S.body.map(b=>({t:new Date(b.d+'T12:00:00').getTime(),v:b.kg})))}</div>`;
+  h+=girthCard();
   if(histEx){
     // תרגיל עם משקל: 1RM משוער. משקל גוף בלבד: מקסימום חזרות. תרגיל זמן: מקסימום שניות
     const he=ex(histEx),weighted=he.type==='s'&&S.workouts.some(w=>w.entries.some(e=>e.exId===histEx&&ph(e)==='m'&&e.sets.some(s=>!isBW(s))));
@@ -1099,8 +1100,30 @@ function prBoard(list){
   return `<div class="card"><b>🏆 שיאים אישיים</b><div class="mu" style="margin:4px 0 6px">הסט הטוב ביותר בכל תרגיל</div>${rows.map(({e,best})=>`<div class="row sp"><span>${esc(e.name)}</span><span class="mu">${fmtSet(e,best.s)} · ${fmtDate(best.t)}</span></div>`).join('')}</div>`;
 }
 function delWorkout(id){if(confirm('למחוק את האימון?')){tomb('w',id);S.workouts=S.workouts.filter(w=>w.id!==id);save();render()}}
-function chart(p){
-  if(p.length<2)return `<div class="empty">צריך לפחות 2 אימונים לגרף</div>`;
+/* היקפי גוף (ס"מ): רשומה אחת ליום, ואפשר למדוד רק חלק מהאזורים בכל פעם */
+const GIRTH=[['waist','מותניים'],['chest','חזה'],['hips','אגן'],['arm','זרוע'],['thigh','ירך'],['neck','צוואר']];
+let girthSel='waist';
+function girthCard(){
+  const lbl=GIRTH.find(x=>x[0]===girthSel)[1],pts=S.girth.filter(g=>g[girthSel]>0).map(g=>({t:new Date(g.d+'T12:00:00').getTime(),v:g[girthSel]}));
+  const diff=pts.length>1?pts[pts.length-1].v-pts[0].v:0;
+  const info=pts.length?`${lbl} אחרון: ${pts[pts.length-1].v} ס"מ${pts.length>1?` · שינוי מההתחלה: <bdi dir="ltr">${(diff>0?'+':'')+diff.toFixed(1)}</bdi> ס"מ`:''}`:`עוד אין מדידות ל${lbl}`;
+  const lastOf=k=>{const g=[...S.girth].reverse().find(x=>x[k]>0);return g?g[k]:''};
+  return `<div class="card"><b>📏 היקפי גוף</b>
+  <div class="row" style="flex-wrap:wrap;margin:8px 0">${GIRTH.map(([k,l])=>`<button class="sm ${k===girthSel?'pri':''}" onclick="girthSel='${k}';render()">${l}</button>`).join('')}</div>
+  <div class="mu" style="margin-bottom:8px">${info}</div>${chart(pts,'צריך לפחות 2 מדידות לגרף')}
+  <div class="mu" style="margin:10px 0 6px">מדידה להיום (ס"מ, אפשר למלא רק חלק)</div>
+  <div class="grid2">${GIRTH.map(([k,l])=>`<label class="mu">${l}<input id="g_${k}" type="number" inputmode="decimal" step="0.1" placeholder="${lastOf(k)}"></label>`).join('')}</div>
+  <button class="pri" style="width:100%" onclick="logGirth()">שמור מדידה</button></div>`;
+}
+function logGirth(){
+  const d=ymd(Date.now());let rec=S.girth.find(g=>g.d===d),n=0;
+  GIRTH.forEach(([k])=>{const v=parseFloat(document.getElementById('g_'+k).value);
+    if(v>=5&&v<=250){if(!rec){rec={d};S.girth.push(rec)}rec[k]=Math.round(v*10)/10;n++}});
+  if(!n)return toast('הזן לפחות מדידה אחת בס"מ');
+  S.girth.sort((a,b)=>a.d<b.d?-1:1);save();render();toast(`📏 נשמרו ${n} מדידות`);
+}
+function chart(p,msg){
+  if(p.length<2)return `<div class="empty">${msg||'צריך לפחות 2 אימונים לגרף'}</div>`;
   const W=320,H=140,pad=24,min=Math.min(...p.map(x=>x.v))*.95,max=Math.max(...p.map(x=>x.v))*1.02,t0=p[0].t,t1=p[p.length-1].t||1;
   const X=t=>pad+(t-t0)/(t1-t0||1)*(W-pad*2),Y=v=>H-pad-(v-min)/(max-min||1)*(H-pad*2);
   return `<svg viewBox="0 0 ${W} ${H}"><polyline fill="none" stroke="var(--ac)" stroke-width="2.5" points="${p.map(x=>X(x.t)+','+Y(x.v)).join(' ')}"/>
@@ -1933,12 +1956,13 @@ function mergeStates(L,R){
   const wm=new Map();(L.workouts||[]).forEach(w=>wm.set(w.id,w));(R.workouts||[]).forEach(w=>{const o=wm.get(w.id);if(!o||ver(w)>ver(o))wm.set(w.id,w)});
   const pm=new Map();(older.plans||[]).forEach(p=>pm.set(p.id,p));(newer.plans||[]).forEach(p=>pm.set(p.id,p));
   const bm=new Map();(older.body||[]).forEach(b=>bm.set(b.d,b));(newer.body||[]).forEach(b=>bm.set(b.d,b));
+  const gm=new Map();[...(older.girth||[]),...(newer.girth||[])].forEach(g=>gm.set(g.d,{...(gm.get(g.d)||{}),...g}));
   const water={...(older.water||{})};Object.entries(newer.water||{}).forEach(([d,n])=>water[d]=Math.max(n,water[d]||0));
   const cal=[...(newer.cal||[])];(older.cal||[]).forEach(e=>{if(!cal.some(c=>c.title===e.title&&c.start===e.start))cal.push(e)});
   return {...newer,exercises:exs,
     workouts:[...wm.values()].filter(w=>!deleted.w.includes(w.id)).sort((a,b)=>a.start-b.start),
     plans:[...pm.values()].filter(p=>!deleted.p.includes(p.id)),
-    body:[...bm.values()].sort((a,b)=>a.d<b.d?-1:1),water,cal,deleted,
+    body:[...bm.values()].sort((a,b)=>a.d<b.d?-1:1),girth:[...gm.values()].sort((a,b)=>a.d<b.d?-1:1),water,cal,deleted,
     settings:{...older.settings,...newer.settings,gid:L.settings.gid||R.settings.gid,lastCloud:L.settings.lastCloud},
     profile:newer.profile||older.profile,skipQuiz:L.skipQuiz||R.skipQuiz,
     account:L.account,current:L.current,savedAt:Math.max(L.savedAt||0,R.savedAt||0)};
