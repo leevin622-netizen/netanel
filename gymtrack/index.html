@@ -2384,6 +2384,10 @@ function f3Body(sk,M,o,ghost){
   C(sk.hp[0],sk.hp[1],6.4,'b');C(sk.H,T,8.6,M.has('core')?'m':'b');C(T,sk.S,9.8,M.has('chest')||M.has('back')?'m':'b');C(sk.sh[0],sk.sh[1],5.4,'b');
   C(sk.S,sk.head,3.6,'b');Sp(sk.head,9.4,'h');
   if(ghost)return;
+  /* מכנסי ספורט כהים עם פס צהוב, כמו בדמות בסרטוני ההסבר */
+  C(sk.hp[0],sk.hp[1],7.3,'k');o.push({t:'c',a:sk.H,b:v3mid(sk.hp[0],sk.hp[1]),r:7.5,col:'k'});
+  for(let i=0;i<2;i++){const e=v3a(sk.hp[i],v3m(v3s(sk.kn[i],sk.hp[i]),.36));C(sk.hp[i],e,6.4,'k');Sp(e,6.4,'k');
+    C(v3a(sk.hp[i],v3m(sk.lat,i?-4:4)),v3a(e,v3m(sk.lat,i?-4:4)),.9,'y')}
   sk.sh.forEach(s=>Sp(s,M.has('shoulder')?6.4:5.2,M.has('shoulder')?'m':'b'));
   if(M.has('glutes'))[-1,1].forEach(z=>Sp(v3a(v3a(sk.H,v3m(sk.fr,-4)),v3m(sk.lat,z*5)),6.6,'m'));
   const v=v3a(v3a(sk.head,v3m(sk.fr,6.6)),v3m(sk.tor,1.2));C(v3a(v,v3m(sk.lat,-4.6)),v3a(v,v3m(sk.lat,4.6)),2.3,'q');
@@ -2476,7 +2480,8 @@ function f3Pal(cv){
   const triB=c=>[f3mix(c,W,.75),f3mix(c,W,.08),f3mix(c,[22,48,135],.58)];
   const triM=c=>[f3mix(c,[255,190,170],.55),f3mix(c,W,.04),f3mix(c,[85,0,18],.6)];
   const body=g('--fig'),light=false;
-  return {b:triB(body),h:triB(body),m:triM([226,40,48]),p:tri(g('--pr')),q:tri(g('--pr2')),t:tri(g('--pr')),band:tri([34,197,94]),
+  const triK=c=>[f3mix(c,W,.3),f3mix(c,W,.04),f3mix(c,K,.5)],triY=c=>[f3mix(c,W,.5),f3mix(c,W,0),f3mix(c,K,.25)];
+  return {k:triK([30,48,108]),y:triY([250,204,21]),b:triB(body),h:triB(body),m:triM([226,40,48]),p:tri(g('--pr')),q:tri(g('--pr2')),t:tri(g('--pr')),band:tri([34,197,94]),
     g:light?'rgba(71,85,105,.16)':'rgba(203,213,225,.15)',trail:'#f59e0b',
     floor:light?'rgba(15,23,42,.06)':'rgba(255,255,255,.05)',grid:light?'rgba(15,23,42,.08)':'rgba(255,255,255,.07)',sh:light?'rgba(15,23,42,.16)':'rgba(0,0,0,.35)'};
 }
