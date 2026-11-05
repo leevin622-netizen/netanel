@@ -133,7 +133,7 @@ ul.errs li::marker{content:'⚠️ '}
 .nextc{border-inline-start:4px solid var(--bl)}
 canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:40}
 /* הדמיית תרגילים */
-.fig{width:100%;max-width:230px;aspect-ratio:200/186;height:auto;display:block;margin:0 auto;touch-action:pan-y;cursor:grab;--fig:#eef2fa;--pr:#8da2cc;--pr2:#dfe8f8;border-radius:16px;background:radial-gradient(ellipse at 50% 42%,#3b74ff 0%,#1a46cc 48%,#0a1f6b 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.fig{width:100%;max-width:230px;aspect-ratio:200/186;height:auto;display:block;margin:0 auto;touch-action:pan-y;cursor:grab;--fig:#eef2fa;--pr:#8da2cc;--pr2:#dfe8f8;border-radius:16px;background:radial-gradient(ellipse at 50% 38%,rgba(70,125,255,.55) 0%,rgba(30,70,190,.25) 50%,rgba(0,0,0,.35) 100%),linear-gradient(180deg,#143a8c 0%,#0e2a6a 63%,#071634 63.5%,#0a1d4a 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
 .fig.pf{max-width:210px;margin:0}.fig.sm{max-width:180px}
 .fig .b{stroke:var(--fig);stroke-linecap:round}.fig .gap{stroke:var(--figbg,var(--card));stroke-linecap:round}.pl .fig{--figbg:var(--bg)}.figcard .fig{--figbg:var(--card2)}.fig .hb{fill:var(--fig)}
 .fig .m{stroke:#ef4444;stroke-linecap:round;filter:drop-shadow(0 0 3px rgba(239,68,68,.65))}.fig .mf{fill:#ef4444;opacity:.92}
@@ -2527,6 +2527,12 @@ function f3Draw(cv,e,k,yaw,pitch){
   const pal=cv._pal,ctx=cv.getContext("2d"),sc=Math.min(W/200,Hh/186),ft=f3Fit(e),cm=f3Cam(yaw,pitch,ft),pj=p=>f3P(cm,p);
   ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,W,Hh);ctx.setTransform(sc,0,0,sc,(W-200*sc)/2,(Hh-186*sc)/2);
   const sk=f3Skel(pt,k,sp),o=[];f3Body(sk,M,o);f3Gear(pt,sk,sp,k,o);
+  /* רקע חדר כושר: צלליות ספסל ומתקן משקולות על קו הקיר, כמו בסרטוני ההסבר */
+  ctx.save();ctx.fillStyle='rgba(2,10,34,.34)';
+  ctx.fillRect(4,108,34,3);ctx.fillRect(6,111,3,12);ctx.fillRect(31,111,3,12);ctx.fillRect(2,102,12,6);
+  ctx.fillRect(160,100,36,2.5);ctx.fillRect(160,112,36,2.5);ctx.fillRect(162,100,2.5,16);ctx.fillRect(192,100,2.5,16);
+  for(let i=0;i<5;i++){ctx.beginPath();ctx.arc(167+i*6.5,97,2.6,0,Math.PI*2);ctx.arc(167+i*6.5,109,2.6,0,Math.PI*2);ctx.fill()}
+  ctx.restore();
   // רצפה עם רשת
   const ring=(c,rad,ax,n)=>{const q=[];for(let i=0;i<n;i++){const a=i/n*Math.PI*2,v=ax==='y'?[c[0]+Math.cos(a)*rad,c[1],c[2]+Math.sin(a)*rad]:[c[0]+Math.cos(a)*rad,c[1]+Math.sin(a)*rad,c[2]];q.push(pj(v))}return q};
   const poly=q=>{ctx.beginPath();q.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath()};
@@ -2573,7 +2579,21 @@ function f3Draw(cv,e,k,yaw,pitch){
   }
   // מסלול התנועה: המפרק שזז הכי הרבה (ובן הזוג שלו), עם חצים בשני הקצוות
   if(!pt.hold)f3Trail(ctx,pt,sp,k,pj,pal);
+  if(pt.v!=='f')f3Cue(ctx,sp,sk,pj);
   if(r.width>=170)f3Labels(ctx,sp,sk,pj);
+}
+/* קווי הדגשה זוהרים לטכניקה: קו לאורך הגב וקו לאורך הזרוע הקרובה, כמו בסרטוני ההסבר */
+function f3Cue(ctx,sp,sk,pj){
+  const glow=(pts)=>{ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.shadowColor='#ff2a2a';ctx.shadowBlur=9;ctx.strokeStyle='rgba(255,40,40,.85)';ctx.lineWidth=4;ctx.stroke();
+    ctx.shadowBlur=0;ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();ctx.restore()};
+  const A=pj(sk.H),B=pj(sk.S);let dx=B[0]-A[0],dy=B[1]-A[1];const L=Math.hypot(dx,dy);if(L<8)return;
+  let nx=-dy/L,ny=dx/L;if(Math.abs(nx)>Math.abs(ny)?nx>0:ny<0){nx=-nx;ny=-ny}
+  const o=10,e=.12;
+  glow([[A[0]-dx*e+nx*o,A[1]-dy*e+ny*o],[B[0]+dx*e+nx*o,B[1]+dy*e+ny*o]]);
+  if((sp.mus||[]).some(m=>['chest','back','shoulder','bi','tri'].includes(m))){
+    const i=pj(sk.el[0])[2]>=pj(sk.el[1])[2]?0:1;glow([pj(sk.sh[i]),pj(sk.el[i]),pj(sk.hn[i])]);
+  }
 }
 /* תוויות שמות שרירים עם קו מוביל, כמו בסרטוני ההסבר: עד שני שרירים עיקריים, בצד הקרוב של הדמות */
 const F3MN={chest:'חזה',back:'גב',shoulder:'כתפיים',bi:'דו-ראשי',tri:'תלת-ראשי',fore:'אמות',core:'בטן וליבה',quads:'ארבע-ראשי',hams:'ירך אחורית',glutes:'ישבן',calves:'תאומים'};
