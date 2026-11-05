@@ -2389,6 +2389,17 @@ function f3Body(sk,M,o,ghost){
   C(sk.hp[0],sk.hp[1],7.3,'k');o.push({t:'c',a:sk.H,b:v3mid(sk.hp[0],sk.hp[1]),r:7.5,col:'k'});
   for(let i=0;i<2;i++){const e=v3a(sk.hp[i],v3m(v3s(sk.kn[i],sk.hp[i]),.36));C(sk.hp[i],e,6.4,'k');Sp(e,6.4,'k');
     C(v3a(sk.hp[i],v3m(sk.lat,i?-4:4)),v3a(e,v3m(sk.lat,i?-4:4)),.9,'y')}
+  /* שרירים מעוצבים על המניקן: ארבע-ראשי, תאומים, דו/תלת-ראשי, אמה, חזה, גב ושריר הטרפז; האדומים הם הפעילים בתרגיל */
+  {const al=(a,b,t)=>v3a(a,v3m(v3s(b,a),t)),mc=on=>on?'m':'b',arm=M.has('bi')||M.has('tri');
+    for(let i=0;i<2;i++){const sg=i?-1:1;
+      Sp(v3a(al(sk.hp[i],sk.kn[i],.42),v3m(sk.fr,3.2)),5.2,mc(M.has('quads')));
+      Sp(v3a(al(sk.kn[i],sk.an[i],.3),v3m(sk.fr,-3)),4.5,mc(M.has('calves')));
+      Sp(al(sk.sh[i],sk.el[i],.4),arm?5.1:4.5,mc(arm));
+      Sp(al(sk.el[i],sk.hn[i],.25),3.9,mc(M.has('fore')));
+      Sp(v3a(v3a(sk.S,v3m(sk.tor,-9)),v3a(v3m(sk.fr,6),v3m(sk.lat,sg*6))),5.8,mc(M.has('chest')));
+      Sp(v3a(v3a(sk.S,v3m(sk.tor,-14)),v3a(v3m(sk.fr,-5),v3m(sk.lat,sg*7))),6.2,mc(M.has('back')));
+    }
+    Sp(v3a(sk.S,v3m(sk.tor,2)),6,mc(M.has('back')&&M.has('bi')===false&&M.has('shoulder')));}
   sk.sh.forEach(s=>Sp(s,M.has('shoulder')?6.4:5.2,M.has('shoulder')?'m':'b'));
   if(M.has('glutes'))[-1,1].forEach(z=>Sp(v3a(v3a(sk.H,v3m(sk.fr,-4)),v3m(sk.lat,z*5)),6.6,'m'));
   const v=v3a(v3a(sk.head,v3m(sk.fr,6.6)),v3m(sk.tor,1.2));C(v3a(v,v3m(sk.lat,-4.6)),v3a(v,v3m(sk.lat,4.6)),2.3,'v');
