@@ -2399,7 +2399,12 @@ function f3Body(sk,M,o,ghost){
       Sp(v3a(v3a(sk.S,v3m(sk.tor,-9)),v3a(v3m(sk.fr,6),v3m(sk.lat,sg*6))),5.8,mc(M.has('chest')));
       Sp(v3a(v3a(sk.S,v3m(sk.tor,-14)),v3a(v3m(sk.fr,-5),v3m(sk.lat,sg*7))),6.2,mc(M.has('back')));
     }
-    Sp(v3a(sk.S,v3m(sk.tor,2)),6,mc(M.has('back')&&M.has('bi')===false&&M.has('shoulder')));}
+    Sp(v3a(sk.S,v3m(sk.tor,2)),6,mc(M.has('back')&&M.has('bi')===false&&M.has('shoulder')));
+    /* לסת, ואצבעות ואגודל לכל יד */
+    Sp(v3a(v3a(sk.head,v3m(sk.fr,3.2)),v3m(sk.tor,-4.5)),6.2,'h');
+    for(let i=0;i<2;i++){const d=v3n(v3s(sk.hn[i],sk.el[i])),sg=i?-1:1;
+      [-1.6,-.5,.6,1.7].forEach((q,j)=>{const b=v3a(sk.hn[i],v3m(sk.lat,q)),L=j===3?4.4:6;C(v3a(b,v3m(d,1.5)),v3a(b,v3m(d,1.5+L)),1.05,'b')});
+      C(v3a(sk.hn[i],v3a(v3m(sk.lat,-2.4*sg),v3m(d,.5))),v3a(sk.hn[i],v3a(v3m(sk.lat,-3.2*sg),v3m(d,4))),1.15,'b')}}
   sk.sh.forEach(s=>Sp(s,M.has('shoulder')?6.4:5.2,M.has('shoulder')?'m':'b'));
   if(M.has('glutes'))[-1,1].forEach(z=>Sp(v3a(v3a(sk.H,v3m(sk.fr,-4)),v3m(sk.lat,z*5)),6.6,'m'));
   const v=v3a(v3a(sk.head,v3m(sk.fr,6.6)),v3m(sk.tor,1.2));C(v3a(v,v3m(sk.lat,-4.6)),v3a(v,v3m(sk.lat,4.6)),2.3,'v');
@@ -2619,7 +2624,8 @@ function f3Init(){
     sc.environment=new T.PMREMGenerator(rd).fromScene(envS,.02).texture;
     /* חדר: קיר כחול מעוגל, רצפה מבריקה, כתם אור, וציוד חדר כושר כהה סביב */
     const wall=new T.Mesh(new T.CylinderGeometry(430,430,330,64,1,true),new T.MeshBasicMaterial({side:T.BackSide,map:f3Tex(8,512,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#2a60cc');gr.addColorStop(.5,'#18409a');gr.addColorStop(1,'#071640');g.fillStyle=gr;g.fillRect(0,0,w,h)})}));wall.position.y=150;sc.add(wall);
-    const floor=new T.Mesh(new T.CircleGeometry(1600,64),new T.MeshLambertMaterial({color:0x020a26}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;sc.add(floor);
+    const floor=new T.Mesh(new T.CircleGeometry(1600,64),new T.MeshBasicMaterial({color:0x05143c}));floor.rotation.x=-Math.PI/2;sc.add(floor);
+    const shd=new T.Mesh(new T.CircleGeometry(600,48),new T.ShadowMaterial({opacity:.55}));shd.rotation.x=-Math.PI/2;shd.position.y=.15;shd.receiveShadow=true;sc.add(shd);
     const pool=new T.Mesh(new T.PlaneGeometry(300,300),new T.MeshBasicMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,map:f3Tex(128,128,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);gr.addColorStop(0,'rgba(90,135,255,.34)');gr.addColorStop(.55,'rgba(50,90,210,.1)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,w,h)})}));pool.rotation.x=-Math.PI/2;pool.position.y=.3;sc.add(pool);
     const dark=new T.MeshStandardMaterial({color:0x0a1738,roughness:.6,metalness:.3,envMapIntensity:.5}),prop=(g,x,y,z,ry)=>{const m=new T.Mesh(g,dark);m.position.set(x,y,z);m.rotation.y=ry||0;sc.add(m);return m};
     const bx=(w,h,d)=>new T.BoxGeometry(w,h,d),props=[];
