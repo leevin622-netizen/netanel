@@ -161,6 +161,7 @@ nav button{font-size:11px}
 <div id="modal" onclick="if(event.target===this)closeModal()"></div>
 <nav id="nav"></nav>
 <script src="three.min.js"></script>
+<script src="GLTFLoader.js"></script>
 <script>
 /* קטלוג תרגילים. כל פריט: [שם, סוג (s=כוח, t=זמן בשניות, c=קרדיו, w=חימום), טיפ]. סוג ברירת מחדל: כוח */
 const CATALOG=[
@@ -2652,6 +2653,108 @@ function f3Init(){
       y:P({color:0xfacc15,roughness:.4}),
       v:P({color:0x050912,roughness:.08,metalness:.3,clearcoat:1,envMapIntensity:1.4})};
     mats.h=mats.b;
+    /* דמות אמיתית: מודל GLB עם שלד (CC0, Quaternius), נטען לפי המגדר בשאלון ומחליף את המניקן. אם הטעינה נכשלת נשארים עם המניקן */
+    const REAL={},RSC=82,qa=new T.Quaternion(),qb=new T.Quaternion(),qc=new T.Quaternion(),qT=new T.Quaternion(),ua=new T.Vector3(),ub=new T.Vector3(),uc=new T.Vector3(),ud=new T.Vector3(),mA=new T.Matrix4();
+    const worldQ=(o,out)=>{o.matrixWorld.decompose(ua,out,ub);return out};
+    const setWorldQ=(b,q)=>{worldQ(b.parent,qa);b.quaternion.copy(qa.invert()).multiply(q)};
+    const upd=b=>{b.updateMatrix();b.matrixWorld.multiplyMatrices(b.parent.matrixWorld,b.matrix)};
+    const realSetup=(R,gl)=>{
+      const root=gl.scene,holder=new T.Group(),B={};holder.scale.setScalar(RSC);holder.visible=false;holder.add(root);sc.add(holder);
+      root.traverse(o=>{if(o.isBone)B[o.name]=o;if(o.isMesh){o.frustumCulled=false;o.castShadow=true;if(o.material)o.material.envMapIntensity=.9}});
+      ['pelvis','spine_01','spine_02','spine_03','neck_01','upperarm_l','upperarm_r','thigh_l','thigh_r','lowerarm_l','hand_l','calf_l','foot_l','ball_l'].forEach(n=>{if(!B[n])throw new Error('missing bone '+n)});
+      R.holder=holder;R.B=B;R.rest={};for(const n in B)R.rest[n]={p:B[n].position.clone(),q:B[n].quaternion.clone()};
+      holder.updateMatrixWorld(true);
+      const wp=n=>new T.Vector3().setFromMatrixPosition(B[n].matrixWorld).divideScalar(RSC);
+      R.Ltot=wp('upperarm_l').add(wp('upperarm_r')).multiplyScalar(.5).sub(wp('thigh_l').add(wp('thigh_r')).multiplyScalar(.5)).length();
+      R.Lsp=wp('spine_03').sub(wp('pelvis')).length();
+      R.fing=[];for(const n in B){const m=/^(index|middle|ring|pinky)_0([123])_([lr])$/.exec(n);if(!m)continue;
+        const wq=new T.Quaternion();B[n].matrixWorld.decompose(new T.Vector3(),wq,new T.Vector3());
+        R.fing.push({n,b:B[n],a:new T.Vector3(0,0,m[3]==='l'?-1:1).applyQuaternion(wq.invert()),ang:[0,1,1.4,.9][+m[2]]})}
+      /* שכבת שרירים: משקלי העצמות בכל קדקוד קובעים אילו אזורים מוארים באדום (חזה, גב, ירך וכו') */
+      const bms=[];root.traverse(o=>{if(o.isSkinnedMesh)bms.push(o)});bms.sort((a,b)=>b.geometry.attributes.position.count-a.geometry.attributes.position.count);
+      const body=bms[0],bg=body.geometry,N=bg.attributes.position.count,bnm=body.skeleton.bones.map(b=>b.name),si=bg.attributes.skinIndex,sw=bg.attributes.skinWeight,nm=bg.attributes.normal,ps=bg.attributes.position;
+      if(body.material&&body.material.color)body.material.color.multiplyScalar(.86);
+      const grpOf={};bnm.forEach((n,i)=>{grpOf[i]=/^thigh_/.test(n)?'th':/^calf_|^foot_|^ball_/.test(n)?'ca':/^upperarm_/.test(n)?'ua':/^lowerarm_|^hand_/.test(n)?'fa':n==='spine_01'?'s1':/^spine_0[23]$/.test(n)?'s23':n==='pelvis'?'pe':/^clavicle_/.test(n)?'cl':''});
+      const W={th:0,ca:0,ua:0,fa:0,s1:0,s23:0,pe:0,cl:0,cap:0,nf:0,nb:0,ty:0},A={};for(const q in W)A[q]=new Float32Array(N);
+      const cmp=(a,i,j)=>j<2?(j?a.getY(i):a.getX(i)):(j>2?a.getW(i):a.getZ(i));
+      const uo=['upperarm_l','upperarm_r'].map(n=>wp(n)),tu=wp('thigh_l').y;
+      for(let i=0;i<N;i++){
+        for(let j=0;j<4;j++){const w=cmp(sw,i,j);if(w>0){const q=grpOf[cmp(si,i,j)];if(q)A[q][i]+=w}}
+        const z=nm.getZ(i);A.nf[i]=Math.max(0,Math.min(1,(z+.15)/.6));A.nb[i]=Math.max(0,Math.min(1,(-z+.15)/.6));
+        const x=ps.getX(i),y=ps.getY(i),zz=ps.getZ(i),u=uo[x>=0?0:1],d=Math.hypot(x-u.x,y-u.y,zz-u.z);
+        A.cap[i]=A.ua[i]*Math.max(0,1-d/.12);A.ty[i]=y>tu-.1?1:0;
+      }
+      R.A=A;R.N=N;
+      const og=new T.BufferGeometry();['position','normal','skinIndex','skinWeight'].forEach(a=>og.setAttribute(a,bg.attributes[a]));if(bg.index)og.setIndex(bg.index);
+      R.col=new T.BufferAttribute(new Float32Array(N*4).fill(1),4);og.setAttribute('color',R.col);
+      const om=new T.MeshStandardMaterial({color:0xd4141f,roughness:.45,emissive:0x7a0610,emissiveIntensity:.9,vertexColors:true,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2,envMapIntensity:.6});
+      const ov=new T.SkinnedMesh(og,om);ov.bindMode=body.bindMode;ov.bind(body.skeleton,body.bindMatrix);ov.frustumCulled=false;ov.renderOrder=2;body.parent.add(ov);
+      R.mk=null;
+      R.ready=true;
+    };
+    const realMus=(R,Ms)=>{
+      const key=[...Ms].sort().join(',');if(R.mk===key)return;R.mk=key;
+      const A=R.A,c=R.col.array,N=R.N,h=n=>Ms.has(n),mx=Math.max;
+      R.mc=R.mc||{};let al=R.mc[key];
+      if(al){for(let i=0;i<N;i++)c[i*4+3]=al[i];R.col.needsUpdate=true;return}
+      al=R.mc[key]=new Float32Array(N);
+      for(let i=0;i<N;i++){
+        let a=0;
+        if(h('quads'))a=mx(a,A.th[i]*A.nf[i]*(1-A.pe[i]));
+        if(h('hams'))a=mx(a,A.th[i]*A.nb[i]);
+        if(h('calves'))a=mx(a,A.ca[i]*(A.nb[i]*.9+.1));
+        if(h('bi'))a=mx(a,A.ua[i]*A.nf[i]*(1-A.cap[i]*.5));
+        if(h('tri'))a=mx(a,A.ua[i]*A.nb[i]*(1-A.cap[i]*.5));
+        if(h('fore'))a=mx(a,A.fa[i]*.9);
+        if(h('chest'))a=mx(a,(A.s23[i]+A.cl[i]*.5)*A.nf[i]);
+        if(h('back'))a=mx(a,(A.s23[i]+A.s1[i]*.5+A.cl[i]*.4)*A.nb[i]);
+        if(h('core'))a=mx(a,(A.s1[i]+A.pe[i]*.5)*A.nf[i]);
+        if(h('shoulder'))a=mx(a,mx(A.cap[i],A.cl[i]*.7));
+        if(h('glutes'))a=mx(a,A.pe[i]*A.nb[i]+A.th[i]*A.nb[i]*A.ty[i]);
+        c[i*4+3]=al[i]=Math.min(1,a)*.85;
+      }
+      R.col.needsUpdate=true;
+    };
+    const realGet=()=>{
+      if(typeof T.GLTFLoader!=='function')return null;
+      const g=(typeof S!=='undefined'&&S&&S.profile&&S.profile.gender==='f')?'f':'m';
+      let R=REAL[g];
+      if(R===undefined){
+        R=REAL[g]={ready:false,fail:false};
+        try{new T.GLTFLoader().load('body_'+g+'.glb',gl=>{try{realSetup(R,gl)}catch(err){console.warn('real body',err);R.fail=true}},undefined,()=>{R.fail=true})}catch(err){R.fail=true}
+      }
+      return R.ready&&!R.fail?R:null;
+    };
+    /* התאמת שלד המודל לשלד שלנו: כיוון כל עצם לפי המפרק הבא, ואורכי הקטעים נמתחים כך שהידיים והרגליים נוגעות בדיוק במקום שהתרגיל דורש */
+    const retarget=(R,sk,Ms,grip)=>{
+      const B=R.B,rest=R.rest,V=a=>new T.Vector3(a[0],a[1],a[2]);
+      for(const n in B){B[n].position.copy(rest[n].p);B[n].quaternion.copy(rest[n].q)}
+      R.holder.updateMatrixWorld(true);
+      const up=V(sk.tor).normalize(),fw=V(sk.fr);fw.addScaledVector(up,-fw.dot(up));if(fw.lengthSq()<1e-4)fw.set(1,0,0);fw.normalize();
+      const lf=new T.Vector3().crossVectors(up,fw).normalize(),sgn=lf.dot(V(sk.lat))>=0?0:1;
+      mA.makeBasis(lf,up,fw);qT.setFromRotationMatrix(mA);
+      const Pv=B.pelvis;worldQ(Pv,qb);qc.copy(qT).multiply(qb);setWorldQ(Pv,qc);
+      const TL=V(sk.S).sub(V(sk.H)).length(),r=Math.max(.7,Math.min(1.5,1+(TL/RSC-R.Ltot)/R.Lsp));
+      ['spine_01','spine_02','spine_03'].forEach(n=>B[n].position.copy(rest[n].p).multiplyScalar(r));
+      R.holder.updateMatrixWorld(true);
+      const mid=new T.Vector3().setFromMatrixPosition(B.thigh_l.matrixWorld).add(new T.Vector3().setFromMatrixPosition(B.thigh_r.matrixWorld)).multiplyScalar(.5);
+      const pw=new T.Vector3().setFromMatrixPosition(Pv.matrixWorld).add(V(sk.H).sub(mid));Pv.parent.worldToLocal(pw);Pv.position.copy(pw);
+      R.holder.updateMatrixWorld(true);
+      /* ראש: ממשיך את הגו, ומתיישר מעט כשהגו נוטה */
+      const hu=V(sk.head).sub(V(sk.S)).normalize().lerp(new T.Vector3(0,1,0),.4*Math.max(0,up.y)).normalize();
+      const nk=B.neck_01;upd(nk);worldQ(nk,qb);qc.setFromUnitVectors(up,hu).multiply(qb);setWorldQ(nk,qc);
+      const aim=(bn,cn,t)=>{const b=B[bn],c=B[cn];if(!b||!c)return;
+        upd(b);b.matrixWorld.decompose(ua,qa,ub);
+        ud.copy(rest[cn].p).normalize().applyQuaternion(qa);
+        uc.set(t[0],t[1],t[2]).sub(ua);const L=uc.length();if(L<1e-3)return;uc.divideScalar(L);
+        qb.setFromUnitVectors(ud,uc).multiply(qa);setWorldQ(b,qb);upd(b);
+        c.position.copy(rest[cn].p).setLength(L/RSC)};
+      ['l','r'].forEach((s,j)=>{const i=j?1-sgn:sgn;
+        aim('upperarm_'+s,'lowerarm_'+s,sk.el[i]);aim('lowerarm_'+s,'hand_'+s,sk.hn[i]);
+        aim('thigh_'+s,'calf_'+s,sk.kn[i]);aim('calf_'+s,'foot_'+s,sk.an[i]);aim('foot_'+s,'ball_'+s,sk.toe[i])});
+      /* אצבעות: קפוצות סביב ציוד, ורפויות קלות בשאר המצבים */
+      const cg=grip?1:.3;R.fing.forEach(f=>{f.b.quaternion.copy(rest[f.n].q).multiply(qa.setFromAxisAngle(f.a,f.ang*cg))});
+    };
     const grp=new T.Group();sc.add(grp);
     const geo={s:new T.SphereGeometry(1,32,20),x:new T.BoxGeometry(1,1,1),r:new T.TorusGeometry(1,.09,12,56)},cg={},cyl=q=>cg[q]||(cg[q]=new T.CylinderGeometry(q/100,1,1,28,1,true));
     const disc=new T.CylinderGeometry(1,1,1,40,1,false),pl={c:[],s:[],x:[],r:[]},us={c:0,s:0,x:0,r:0};
@@ -2668,7 +2771,9 @@ function f3Init(){
       if(cv.width!==W||cv.height!==Hh){cv.width=W;cv.height=Hh}
       if(!cv._pal||cv._palAt<performance.now()-2000){cv._pal=f3Pal(cv);cv._palAt=performance.now()}
       const spc=figSpec(e),pt=FIGP[spc.p]||FIGP.squat,Ms=new Set(spc.mus),pal=cv._pal,ctx=cv.getContext('2d'),ft=f3Fit(e);
-      const skl=f3Skel(pt,k,spc),o=[];f3Body(skl,Ms,o);f3Gear(pt,skl,spc,k,o);
+      const skl=f3Skel(pt,k,spc),o=[],R=realGet();f3Body(skl,Ms,o);const nb=o.length;f3Gear(pt,skl,spc,k,o);
+      for(const gk in REAL)if(REAL[gk].holder)REAL[gk].holder.visible=REAL[gk]===R;
+      if(R){retarget(R,skl,Ms,(spc.eq&&spc.eq!=='ball')||pt.bar==='sh');realMus(R,Ms)}
       if(!pt.hold)[0,1].forEach(kk=>f3Body(f3Skel(pt,kk,spc),Ms,o,true));
       /* מצלמה שזהה לזו של הציור הדו-ממדי: אותו מרחק (700), אותה הגדלה, אותו סיבוב והטיה */
       const a=FG(yaw),p=FG(pitch==null?14:pitch),ca=Math.cos(a),sa=Math.sin(a),cp=Math.cos(p),sp_=Math.sin(p);
@@ -2690,7 +2795,8 @@ function f3Init(){
         const s2=get('s',m);vP.set(s.b[0],s.b[1],s.b[2]);vS.set(r2*sx,r2,r2*sz);put(s2,vx,vy,vz,vS,vP);
       };
       const ONE=new T.Vector3(1,1,1);
-      o.forEach(s=>{
+      o.forEach((s,ix)=>{
+        if(R&&ix<nb)return;
         const m=M3(s.col);
         if(s.t==='c'){if(Math.hypot(s.b[0]-s.a[0],s.b[1]-s.a[1],s.b[2]-s.a[2])<.05){const q=get('s',m);vx.set(1,0,0);vy.set(0,1,0);vz.set(0,0,1);vP.set(s.a[0],s.a[1],s.a[2]);vS.set(s.r,s.r,s.r);put(q,vx,vy,vz,vS,vP)}else capsule(s,m)}
         else if(s.t==='s'){const q=get('s',m);vx.set(1,0,0);vy.set(0,1,0);vz.set(0,0,1);vP.set(s.p[0],s.p[1],s.p[2]);if(s.col==='h')vS.set(s.r*.93,s.r*1.1,s.r*.9);else vS.set(s.r,s.r,s.r);put(q,vx,vy,vz,vS,vP)}
@@ -2710,7 +2816,7 @@ function f3Init(){
       if(pt.v!=='f')f3Cue(ctx,spc,skl,pj);
       if(r.width>=170)f3Labels(ctx,spc,skl,pj);
     };
-    F3G={draw};return F3G;
+    F3G={draw,REAL};return F3G;
   }catch(err){console.warn('3D off',err);F3G=false;return null}
 }
 function f3Draw(cv,e,k,yaw,pitch){
