@@ -2038,6 +2038,7 @@ function calcCards(){
   <div class="card"><b>🔥 אחוז שומן, מסה רזה ו-FFMI</b><div class="mu" style="margin:2px 0">שיטת הצי האמריקאי: צוואר, מותניים, ובנשים גם אגן</div><div id="o_bf" class="mu" style="margin-top:6px">מלאו גובה, משקל, צוואר ומותניים</div></div>
   <div class="card"><b>📐 יחס מותניים-ירכיים</b><div id="o_whr" class="mu" style="margin-top:6px">מלאו מותניים ואגן</div></div>
   <div class="card"><b>🏋️ מחשבון 1RM</b><div class="grid2" style="margin-top:6px">${f('w','משקל (ק"ג)','',.5)}${f('r','חזרות','')}</div><div id="o_rm" class="mu" style="margin-top:6px">מלאו משקל וחזרות של סט קשה (עד 12 חזרות לדיוק)</div></div>
+  <div class="card"><b>🔥 קלוריות, גירעון, חלבון ומים</b><label class="mu">רמת פעילות<select id="c_act">${[[1.2,'כמעט בלי פעילות'],[1.375,'1–3 אימונים בשבוע'],[1.55,'3–5 אימונים בשבוע'],[1.725,'6–7 אימונים בשבוע'],[1.9,'עבודה פיזית + אימונים']].map(([a,l])=>`<option value="${a}" ${a===1.55?'selected':''}>${l}</option>`).join('')}</select></label><div id="o_kc" class="mu" style="margin-top:6px">מלאו גיל, גובה ומשקל</div></div>
   <div class="card"><b>🍽️ מאקרו לארוחה</b><label class="mu">ארוחות ביום<select id="c_meals">${[3,4,5,6].map(n=>`<option ${n===4?'selected':''}>${n}</option>`).join('')}</select></label><div id="o_meal" class="mu" style="margin-top:6px"></div></div>
   <div class="card"><b>❤️ אזורי דופק</b><div id="o_hr" class="mu" style="margin-top:6px">מלאו גיל</div></div>
   <div class="card"><b>🏃 קצב ריצה</b><div class="grid2" style="margin-top:6px">${f('km','מרחק (ק"מ)','',.01)}${f('min','דקות','')}${f('sec','שניות','')}</div><div id="o_pace" class="mu" style="margin-top:6px">מלאו מרחק וזמן</div></div>
@@ -2057,6 +2058,10 @@ function calcRun(){
     else o('bf','הערכים לא הגיוניים, בדקו את המדידות');
   }else o('bf','מלאו גובה, משקל, צוואר ומותניים (ובאישה גם אגן)');
   if(waist>0&&hip>0){const r=waist/hip,lim=fem?[.8,.85]:[.9,1],rk=r<lim[0]?'סיכון נמוך':r<lim[1]?'סיכון בינוני':'סיכון גבוה';o('whr',`יחס: ${b(r.toFixed(2))} (${rk})`)}else o('whr','מלאו מותניים ואגן');
+  if(age>10&&h>100&&kg>20){
+    const bmr=10*kg+6.25*h-5*age+(fem?-161:5),act=parseFloat(document.getElementById('c_act').value)||1.55,td=bmr*act,R=x=>Math.round(x/10)*10;
+    o('kc',`חילוף חומרים בסיסי (BMR): ${b(R(bmr))} קק"ל · צריכה יומית לשמירה (TDEE): ${b(R(td))} קק"ל<table style="width:100%;margin-top:6px;font-size:13px;border-collapse:collapse">${[['ירידה מהירה (כ-0.7 ק"ג בשבוע)',-750],['ירידה בינונית (כ-0.5 ק"ג בשבוע)',-500],['ירידה עדינה (כ-0.25 ק"ג בשבוע)',-250],['שמירה',0],['עלייה עדינה',250]].map(([l,d])=>`<tr><td>${l}</td><td>${b(Math.max(R(td+d),Math.round(bmr/10)*10))} קק"ל</td></tr>`).join('')}</table>חלבון מומלץ: ${b(Math.round(kg*1.6)+'–'+Math.round(kg*2.2))} ג׳ ביום · מים: ${b((Math.round((kg*35+500)/100)/10).toFixed(1))} ליטר ביום (יותר בימי אימון וחום)<br><span style="font-size:12px">לא יורדים מתחת ל-BMR. ירידה מהירה מדי פוגעת בשריר.</span>`);
+  }else o('kc','מלאו גיל, גובה ומשקל');
   const w=v('w'),r=v('r');
   if(w>0&&r>=1&&r<=36){
     const ep=w*(1+r/30),br=r<37?w*36/(37-r):ep,rm=r===1?w:(ep+br)/2;
