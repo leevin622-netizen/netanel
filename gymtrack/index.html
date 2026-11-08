@@ -425,7 +425,7 @@ function normalize(s){
   s.exercises.forEach(e=>{if(!e.grp)e.grp='אחר'});
   // מיגרציה: פריטי תוכנית -> {ex,ph}
   s.plans.forEach(p=>p.items=p.items.map(i=>typeof i==='string'?{ex:i,ph:'m'}:i));
-  s.cal=s.cal||[];s.body=s.body||[];s.girth=s.girth||[];s.gdel=s.gdel||{};s.water=s.water||{};s.deleted=s.deleted||{w:[],p:[]};
+  s.cal=s.cal||[];s.body=s.body||[];s.girth=s.girth||[];s.gdel=s.gdel||{};s.water=s.water||{};s.checkins=s.checkins||{};s.deleted=s.deleted||{w:[],p:[]};
   // מזהה הלקוח של GymTrack ב-Google (לא סודי: מוגבל לכתובת האתר). מאפשר התחברות בלי הגדרה ידנית
   if(!s.settings.gid)s.settings.gid='1087321152995-3ognh9q8dqs177998uvm0ogg4mia4g7i.apps.googleusercontent.com';
   return s;
@@ -941,7 +941,7 @@ function vToday(){
   let h=`<h1>היי${S.account&&S.account.name?" "+esc(S.account.name.split(" ")[0]):""} 👋</h1>${bk}${sy}${dlb}${remindBanner()}${S.current?'':calBanner()+restTip()}<div class="stats">
    <div class="stat"><b>${cnt}/${goal}</b><span class="mu">יעד השבוע${goal<S.settings.goal?' (מותאם ליומן)':''}</span></div>
    <div class="stat"><b>🔥 ${streak()}</b><span class="mu">שבועות ברצף</span></div>
-   <div class="stat"><b>${S.workouts.length}</b><span class="mu">אימונים</span></div></div>${S.current?'':dailyCard()}
+   <div class="stat"><b>${S.workouts.length}</b><span class="mu">אימונים</span></div></div>${S.current?'':dailyCard()+checkinCard()+stuckCard()}
    <div class="card" style="margin-top:12px"><div class="week">${DAYS.map((d,i)=>{const dt=new Date(wk);dt.setDate(dt.getDate()+i);return `<div class="day ${days.has(i)?'on':''} ${i===td?'today':''} ${eventsOn(ymd(dt)).length?'ev':''}">${d}</div>`}).join('')}</div></div>`;
   if(S.current)return h+vActive();
   const todays=S.plans.filter(p=>p.days.includes(td));
@@ -1115,7 +1115,7 @@ function vProgress(){
   const g=goalCfg(),[lo,hi]=g.vol,vs=weeklySets(startOfWeek(Date.now()));
   const groups=['חזה','גב','כתפיים','ידיים','רגליים','ישבן','בטן וליבה',...Object.keys(vs).filter(k=>!['חזה','גב','כתפיים','ידיים','רגליים','ישבן','בטן וליבה'].includes(k))];
   h+=`<div class="card"><b>נפח השבוע</b><div class="mu" style="margin-bottom:6px">סטים לכל קבוצת שרירים. היעד ל${g.l}: ${lo}–${hi} סטים בשבוע</div>${groups.map(k=>{const n=vs[k]||0;return `<div class="vol"><span>${k}</span><div class="bar"><i class="${n<lo?'lo':n>hi?'hi':''}" style="width:${Math.min(100,n/hi*100)}%"></i></div><span class="mu">${n}/${lo}${n>=lo&&n<=hi?' ✔':''}</span></div>`}).join('')}</div>`;
-  h+=weeksChart()+prBoard(strength);
+  h+=weeksChart()+prBoard(strength)+ciHistory();
   if(S.body.length)h+=`<div class="card"><b>משקל גוף</b><div class="mu" style="margin:4px 0 8px">אחרון: ${S.body[S.body.length-1].kg} ק"ג${S.body.length>1?` · שינוי מההתחלה: <bdi dir="ltr">${(S.body[S.body.length-1].kg-S.body[0].kg>0?'+':'')+(S.body[S.body.length-1].kg-S.body[0].kg).toFixed(1)}</bdi> ק"ג`:''}</div>${chart(S.body.map(b=>({t:new Date(b.d+'T12:00:00').getTime(),v:b.kg})))}</div>`;
   h+=girthCard();
   if(histEx){
@@ -1974,9 +1974,104 @@ function setProf(k,v){
   else S.profile[k]=(k==='gender'||k==='goal')?v:+v;
   save();render();
 }
+/* ---------- רעיונות מ-Coach Platform: צ'ק-אין שבועי, זיהוי תרגיל תקוע, מחשבוני כושר ---------- */
+const CI_Q=[['en','⚡ אנרגיה'],['sl','😴 שינה'],['mo','🙂 מצב רוח']],CI_E=['😫','😕','😐','🙂','🤩'];
+let ci={en:0,sl:0,mo:0};
+const wkKey=t=>ymd(startOfWeek(t||Date.now()));
+function ciTip(c){
+  const t=[];
+  if(c.sl&&c.sl<=2)t.push('שינה נמוכה: זה הגורם הראשון שמוריד ביצועים. נסו להקדים שינה בשעה השבוע.');
+  if(c.en&&c.en<=2)t.push('אנרגיה נמוכה: שקלו אימון קל יותר או שבוע הקלה, ובדקו שאתם אוכלים מספיק.');
+  if(c.mo&&c.mo<=2)t.push('מצב רוח נמוך: גם אימון מקוצר או הליכה נחשבים, העיקר להמשיך את הרצף.');
+  if(!t.length&&c.en>=4&&c.sl>=4)t.push('שבוע מצוין להתאוששות. אפשר לדחוף קצת יותר במשקלים.');
+  return t.join(' ');
+}
+function ciSet(k,v){ci[k]=v;render()}
+function ciSave(){
+  if(!ci.en||!ci.sl||!ci.mo)return toast('דרגו את שלושת הסעיפים');
+  S.checkins=S.checkins||{};S.checkins[wkKey()]={...ci,t:Date.now()};ci={en:0,sl:0,mo:0};save();render();toast('📝 הצ\'ק-אין נשמר');
+}
+function checkinCard(){
+  S.checkins=S.checkins||{};
+  const k=wkKey(),done=S.checkins[k];
+  if(done)return `<div class="card" style="margin-top:12px"><div class="row sp"><b>📝 צ'ק-אין שבועי נשמר ✓</b><span>${CI_Q.map(([q])=>CI_E[done[q]-1]).join(' ')}</span></div>${ciTip(done)?`<div class="mu" style="margin-top:6px">${ciTip(done)}</div>`:''}</div>`;
+  if(!S.workouts.length)return '';
+  const wk=startOfWeek(Date.now()),prev=wk-7*864e5,cnt=S.workouts.filter(w=>w.start>=prev&&w.start<wk).length,cur=S.workouts.filter(w=>w.start>=wk).length;
+  const bw=S.body.filter(b=>b.d>=ymd(Date.now()-14*864e5)),dk=bw.length>1?bw[bw.length-1].kg-bw[0].kg:null;
+  return `<div class="card" style="margin-top:12px"><b>📝 צ'ק-אין שבועי</b><div class="mu" style="margin:4px 0 8px">שבוע שעבר ${cnt} אימונים, השבוע עד עכשיו ${cur}${dk!==null?` · משקל ב-${bw.length>1?'שבועיים האחרונים':''}: <bdi dir="ltr">${dk>0?'+':''}${dk.toFixed(1)}</bdi> ק"ג`:''}. איך אתם מרגישים?</div>
+  ${CI_Q.map(([q,l])=>`<div class="row sp" style="margin:4px 0"><span>${l}</span><span class="row">${CI_E.map((e,i)=>`<button class="sm ${ci[q]===i+1?'pri':''}" style="padding:4px 7px" onclick="ciSet('${q}',${i+1})" aria-label="${i+1}">${e}</button>`).join('')}</span></div>`).join('')}
+  <button class="pri" style="width:100%;margin-top:8px" onclick="ciSave()">שמור צ'ק-אין</button></div>`;
+}
+function ciHistory(){
+  const ks=Object.keys(S.checkins||{}).sort().slice(-8).reverse();
+  if(!ks.length)return '';
+  return `<div class="card"><b>📝 צ'ק-אין שבועי</b><div class="mu" style="margin:4px 0 6px">אנרגיה · שינה · מצב רוח</div>${ks.map(k=>{const c=S.checkins[k];return `<div class="row sp" style="padding:3px 0"><span class="mu">שבוע ${fmtDate(new Date(k+'T12:00:00').getTime())}</span><span>${CI_Q.map(([q])=>CI_E[c[q]-1]).join(' ')}</span></div>`}).join('')}</div>`;
+}
+/* תרגיל תקוע: 4 אימונים לפחות, ושלושת האחרונים (לאורך 10 ימים לפחות) לא עברו את השיא שלפניהם ביותר מ-1% */
+function stuckList(){
+  const out=[];
+  S.exercises.forEach(e=>{
+    if(e.type==='c')return;
+    const wt=e.type==='s'&&S.workouts.some(w=>w.entries.some(en=>en.exId===e.id&&ph(en)==='m'&&en.sets.some(s=>!isBW(s)&&(s.done||s.done===undefined))));
+    const sess=[];
+    S.workouts.forEach(w=>{if(w.deload)return;let b=0;w.entries.forEach(en=>{if(en.exId===e.id&&ph(en)==='m')en.sets.forEach(s=>{if(!s.done&&s.done!==undefined)return;if(e.type==='t'||isBW(s)!==wt)b=Math.max(b,setScore(e,s))})});if(b)sess.push({t:w.start,v:b})});
+    if(sess.length<4)return;
+    const last=sess.slice(-3),pb=Math.max(...sess.slice(0,-3).map(x=>x.v));
+    if(Math.max(...last.map(x=>x.v))<pb*1.01&&last[2].t-last[0].t>=10*864e5&&Date.now()-last[2].t<45*864e5)out.push({e,t:last[2].t});
+  });
+  return out.sort((a,b)=>b.t-a.t).slice(0,2);
+}
+function stuckCard(){
+  const l=stuckList();if(!l.length)return '';
+  return `<div class="banner"><b>🧱 תרגיל תקוע</b><div class="mu" style="margin:4px 0">${l.map(x=>esc(x.e.name)).join(', ')}: אין שיפור ב-3 אימונים אחרונים.</div><div class="mu">נסו: להוריד כ-10% מהמשקל ולעלות בחזרות, לשנות טווח חזרות (למשל 6–8 במקום 10–12), להחליף לוריאציה (ℹ️ בכרטיס התרגיל), או לוודא שינה וחלבון. אם זה נמשך, שבוע הקלה יעזור.</div></div>`;
+}
+const CALC_RM=[[100,1],[95,2],[90,4],[85,6],[80,8],[75,10],[70,12],[65,15],[60,20]];
+function calcCards(){
+  const p=S.profile||{},lb=S.body.length?S.body[S.body.length-1].kg:p.weight||'',lg=k=>{const g=[...S.girth].reverse().find(x=>x[k]>0);return g?g[k]:''};
+  const f=(id,l,v,st)=>`<label class="mu">${l}<input id="c_${id}" type="number" inputmode="decimal" step="${st||1}" value="${v??''}"></label>`;
+  return `<div id="calcs" oninput="calcRun()" onchange="calcRun()">
+  <div class="card"><b>🧮 הנתונים שלך</b><div class="mu" style="margin:4px 0 8px">ממולא מהפרופיל וממדידות ההיקפים. כל המחשבונים מתעדכנים תוך כדי הקלדה.</div>
+  <div class="grid2">${f('age','גיל',p.age)}${f('h','גובה (ס"מ)',p.height)}${f('kg','משקל (ק"ג)',lb,.1)}
+  <label class="mu">מין<select id="c_sex"><option value="m" ${p.gender!=='f'?'selected':''}>גבר</option><option value="f" ${p.gender==='f'?'selected':''}>אישה</option></select></label>
+  ${f('neck','צוואר (ס"מ)',lg('neck'),.1)}${f('waist','מותניים (ס"מ)',lg('waist'),.1)}${f('hip','אגן (ס"מ)',lg('hips'),.1)}</div></div>
+  <div class="card"><b>⚖️ BMI ומשקל</b><div id="o_bmi" class="mu" style="margin-top:6px">מלאו גובה ומשקל</div></div>
+  <div class="card"><b>🔥 אחוז שומן, מסה רזה ו-FFMI</b><div class="mu" style="margin:2px 0">שיטת הצי האמריקאי: צוואר, מותניים, ובנשים גם אגן</div><div id="o_bf" class="mu" style="margin-top:6px">מלאו גובה, משקל, צוואר ומותניים</div></div>
+  <div class="card"><b>📐 יחס מותניים-ירכיים</b><div id="o_whr" class="mu" style="margin-top:6px">מלאו מותניים ואגן</div></div>
+  <div class="card"><b>🏋️ מחשבון 1RM</b><div class="grid2" style="margin-top:6px">${f('w','משקל (ק"ג)','',.5)}${f('r','חזרות','')}</div><div id="o_rm" class="mu" style="margin-top:6px">מלאו משקל וחזרות של סט קשה (עד 12 חזרות לדיוק)</div></div>
+  <div class="card"><b>🍽️ מאקרו לארוחה</b><label class="mu">ארוחות ביום<select id="c_meals">${[3,4,5,6].map(n=>`<option ${n===4?'selected':''}>${n}</option>`).join('')}</select></label><div id="o_meal" class="mu" style="margin-top:6px"></div></div>
+  <div class="card"><b>❤️ אזורי דופק</b><div id="o_hr" class="mu" style="margin-top:6px">מלאו גיל</div></div>
+  <div class="card"><b>🏃 קצב ריצה</b><div class="grid2" style="margin-top:6px">${f('km','מרחק (ק"מ)','',.01)}${f('min','דקות','')}${f('sec','שניות','')}</div><div id="o_pace" class="mu" style="margin-top:6px">מלאו מרחק וזמן</div></div>
+  <div class="mu">החישובים הם הערכות כלליות ואינם תחליף לייעוץ מקצועי.</div></div>`;
+}
+function calcRun(){
+  const v=id=>{const e=document.getElementById('c_'+id);return e?parseFloat(e.value):NaN},o=(id,h)=>{const e=document.getElementById('o_'+id);if(e)e.innerHTML=h};
+  const age=v('age'),h=v('h'),kg=v('kg'),neck=v('neck'),waist=v('waist'),hip=v('hip'),fem=document.getElementById('c_sex')&&document.getElementById('c_sex').value==='f',b=x=>`<b style="color:var(--tx)">${x}</b>`;
+  if(h>100&&kg>20){
+    const m=h/100,bmi=kg/(m*m),cat=bmi<18.5?'תת משקל':bmi<25?'תקין':bmi<30?'עודף משקל':'השמנה',inch=h/2.54,id=(fem?45.5:50)+2.3*Math.max(0,inch-60);
+    o('bmi',`BMI: ${b(bmi.toFixed(1))} (${cat})<br>טווח משקל תקין לגובה שלך: ${b(Math.round(18.5*m*m)+'–'+Math.round(24.9*m*m))} ק"ג<br>משקל אידיאלי (נוסחת Devine): ${b(Math.round(id))} ק"ג<br><span style="font-size:12px">BMI לא מבחין בין שריר לשומן, ולמתאמנים הוא פחות מדויק.</span>`);
+  }else o('bmi','מלאו גובה ומשקל');
+  if(h>100&&kg>20&&neck>0&&waist>neck&&(!fem||hip>0)&&(!fem||waist+hip>neck)){
+    const bf=fem?495/(1.29579-.35004*Math.log10(waist+hip-neck)+.221*Math.log10(h))-450:495/(1.0324-.19077*Math.log10(waist-neck)+.15456*Math.log10(h))-450;
+    if(bf>2&&bf<65){const lean=kg*(1-bf/100),m=h/100,ff=lean/(m*m);
+      o('bf',`אחוז שומן: ${b(bf.toFixed(1)+'%')}<br>מסה רזה: ${b(lean.toFixed(1))} ק"ג · מסת שומן: ${b((kg-lean).toFixed(1))} ק"ג<br>FFMI: ${b(ff.toFixed(1))} (מנורמל לגובה: ${b((ff+6.1*(1.8-m)).toFixed(1))})<br><span style="font-size:12px">FFMI מנורמל מעל 25 נחשב קרוב לגבול הטבעי. הדיוק של השיטה כ-±3%.</span>`)}
+    else o('bf','הערכים לא הגיוניים, בדקו את המדידות');
+  }else o('bf','מלאו גובה, משקל, צוואר ומותניים (ובאישה גם אגן)');
+  if(waist>0&&hip>0){const r=waist/hip,lim=fem?[.8,.85]:[.9,1],rk=r<lim[0]?'סיכון נמוך':r<lim[1]?'סיכון בינוני':'סיכון גבוה';o('whr',`יחס: ${b(r.toFixed(2))} (${rk})`)}else o('whr','מלאו מותניים ואגן');
+  const w=v('w'),r=v('r');
+  if(w>0&&r>=1&&r<=36){
+    const ep=w*(1+r/30),br=r<37?w*36/(37-r):ep,rm=r===1?w:(ep+br)/2;
+    o('rm',`1RM משוער: ${b(Math.round(rm*2)/2+' ק"ג')}<table style="width:100%;margin-top:6px;font-size:13px;border-collapse:collapse">${CALC_RM.map(([pc,rp])=>`<tr><td>${pc}%</td><td>${b(Math.round(rm*pc/100*2)/2)} ק"ג</td><td class="mu">~${rp} חזרות</td></tr>`).join('')}</table>`);
+  }else o('rm','מלאו משקל וחזרות של סט קשה (עד 12 חזרות לדיוק)');
+  const n=nutri(),ml=parseInt((document.getElementById('c_meals')||{}).value)||4;
+  o('meal',n?`לפי היעד היומי שלך (${n.kcal} קק"ל): בכל ארוחה ${b(Math.round(n.kcal/ml))} קק"ל · חלבון ${b(Math.round(n.pr/ml))} ג׳ · פחמימות ${b(Math.round(n.carb/ml))} ג׳ · שומן ${b(Math.round(n.fat/ml))} ג׳`:'מלאו גיל, גובה ומשקל בפרופיל (למעלה בלשונית התזונה) כדי לקבל יעד יומי');
+  if(age>10&&age<100){const mx=208-.7*age,Z=[['התאוששות וחימום',50,60],['שריפת שומן / בסיס',60,70],['אירובי',70,80],['סף',80,90],['מקסימום',90,100]];
+    o('hr',`דופק מקסימלי משוער: ${b(Math.round(mx))} (נוסחת Tanaka)<table style="width:100%;margin-top:6px;font-size:13px;border-collapse:collapse">${Z.map(([l,a,c])=>`<tr><td>${l}</td><td>${b(Math.round(mx*a/100)+'–'+Math.round(mx*c/100))}</td><td class="mu">${a}–${c}%</td></tr>`).join('')}</table>`)}else o('hr','מלאו גיל');
+  const km=v('km'),mn=(v('min')||0)+(v('sec')||0)/60;
+  if(km>0&&mn>0){const pc=mn/km,ps=Math.round(pc*60);o('pace',`קצב: ${b(Math.floor(ps/60)+':'+String(ps%60).padStart(2,'0'))} דק׳/ק"מ · מהירות ${b((km/(mn/60)).toFixed(1))} קמ"ש`)}else o('pace','מלאו מרחק וזמן');
+}
 function vLearn(){
   const n=nutri(),G={lose:'ירידה במשקל',abs:'חיטוב בטן',muscle:'בניית שריר',strength:'כוח',fit:'כושר כללי'};
-  let h=`<h1>📚 ידע</h1><div class="chips" style="margin-bottom:12px"><a class="lnk" onclick="document.getElementById('s-nut').scrollIntoView({behavior:'smooth'})">🥗 תזונה</a><a class="lnk" onclick="document.getElementById('s-pro').scrollIntoView({behavior:'smooth'})">🎥 ללמוד מהמומחים</a><a class="lnk" onclick="document.getElementById('s-app').scrollIntoView({behavior:'smooth'})">📱 אפליקציות ואתרים</a></div>`;
+  let h=`<h1>📚 ידע</h1><div class="chips" style="margin-bottom:12px"><a class="lnk" onclick="document.getElementById('s-nut').scrollIntoView({behavior:'smooth'})">🥗 תזונה</a><a class="lnk" onclick="document.getElementById('s-calc').scrollIntoView({behavior:'smooth'})">🧮 מחשבונים</a><a class="lnk" onclick="document.getElementById('s-pro').scrollIntoView({behavior:'smooth'})">🎥 ללמוד מהמומחים</a><a class="lnk" onclick="document.getElementById('s-app').scrollIntoView({behavior:'smooth'})">📱 אפליקציות ואתרים</a></div>`;
   h+=`<h2 id="s-nut">🥗 התזונה שלך</h2><div class="card">`;
   if(n){
     h+=`<div class="mu">לפי ${G[n.goal]}, ${n.kg} ק"ג ו-${(S.profile.days||[]).length||S.settings.goal} אימונים בשבוע</div>
@@ -1991,6 +2086,7 @@ function vLearn(){
   if(n)h+=`<div class="card"><b>טיפים ל${G[n.goal]}</b><ul class="tips">${(NUT_TIPS[n.goal]||[]).map(t=>`<li>${t}</li>`).join('')}</ul></div>`;
   h+=`<div class="card"><b>סביב האימון</b><ul class="tips"><li>⏰ <b>1–2 שעות לפני:</b> פחמימה עם מעט חלבון, למשל יוגורט עם בננה, או טוסט עם גבינה</li><li>🍽️ <b>עד כשעתיים אחרי:</b> חלבון ופחמימה, למשל עוף עם אורז, או שייק חלבון עם פרי</li><li>🍗 <b>בכל ארוחה:</b> 20–40 גרם חלבון, מחולק לאורך היום</li><li>😴 <b>שינה:</b> 7–9 שעות. בשינה השריר מתאושש ונבנה</li></ul>
   <div class="mu">ההמלצות כלליות ואינן תחליף לייעוץ אישי. במצב רפואי, בהריון או בהפרעת אכילה, כדאי להתייעץ עם דיאטנית.</div></div>`;
+  h+=`<h2 id="s-calc">🧮 מחשבונים</h2>`+calcCards();setTimeout(calcRun,0);
   h+=`<h2 id="s-pro">🎥 ללמוד מהמומחים</h2><div class="mu" style="margin-bottom:8px">יוצרי תוכן מוכרים בעולם הכושר. בכרטיס של כל תרגיל (ℹ️) יש קישור ישיר לסרטונים שלהם על אותו תרגיל.</div>`
    +CREATORS.map(c=>`<div class="card"><b>${esc(c.n)}</b><div class="mu" style="margin:2px 0 8px">${esc(c.d)}</div><div class="row" style="flex-wrap:wrap"><a class="lnk" target="_blank" rel="noopener" href="https://www.youtube.com/@${c.yt}">▶️ YouTube</a><a class="lnk" target="_blank" rel="noopener" href="https://www.instagram.com/${c.ig}/">📸 Instagram</a><a class="lnk" target="_blank" rel="noopener" href="https://www.tiktok.com/search?q=${encodeURIComponent(c.n)}">🎵 TikTok</a></div></div>`).join('');
   h+=`<h2 id="s-app">📱 אפליקציות ואתרים מומלצים</h2><div class="mu" style="margin-bottom:8px">המלצות כלליות, ללא שיתוף פעולה מסחרי.</div>`
@@ -2084,7 +2180,8 @@ function mergeStates(L,R){
   [...gm.keys()].forEach(d=>{if(gdel[d]&&(gm.get(d).mod||0)<=gdel[d])gm.delete(d)});
   const water={...(older.water||{})};Object.entries(newer.water||{}).forEach(([d,n])=>water[d]=Math.max(n,water[d]||0));
   const cal=[...(newer.cal||[])];(older.cal||[]).forEach(e=>{if(!cal.some(c=>c.title===e.title&&c.start===e.start))cal.push(e)});
-  return {...newer,exercises:exs,
+  const chk={...(older.checkins||{})};Object.entries(newer.checkins||{}).forEach(([k,c])=>{if(!chk[k]||(c.t||0)>=(chk[k].t||0))chk[k]=c});
+  return {...newer,checkins:chk,exercises:exs,
     workouts:[...wm.values()].filter(w=>!deleted.w.includes(w.id)).sort((a,b)=>a.start-b.start),
     plans:[...pm.values()].filter(p=>!deleted.p.includes(p.id)),
     body:[...bm.values()].sort((a,b)=>a.d<b.d?-1:1),girth:[...gm.values()].sort((a,b)=>a.d<b.d?-1:1),gdel,water,cal,deleted,
