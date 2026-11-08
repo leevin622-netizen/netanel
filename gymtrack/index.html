@@ -2114,10 +2114,11 @@ function fIK(root,tgt,l1,l2,bend){
 const STAND={hip:[100,112],tor:180,ft:[100,172],kb:'f'};
 const FIGP={
  squat:{top:{hip:[100,112],tor:180,ft:[104,172],kb:'f',hd:[146,70],eb:'d'},bot:{hip:[84,140],tor:150,ft:[104,172],kb:'f',hd:[150,104],eb:'d'}},
- squatBar:{top:{hip:[100,112],tor:180,ft:[104,172],kb:'f',hd:[94,76],eb:'b'},bot:{hip:[84,140],tor:150,ft:[104,172],kb:'f',hd:[100,110],eb:'b'},bar:'sh'},
+ squatBar:{top:{hip:[100,112],tor:180,ft:[104,172],kb:'f',hd:[96,64],eb:'b'},bot:{hip:[84,140],tor:150,ft:[104,172],kb:'f',hd:[104,98],eb:'b'},bar:'sh'},
  goblet:{top:{hip:[100,112],tor:180,ft:[104,172],kb:'f',hd:[112,80],eb:'d'},bot:{hip:[84,140],tor:150,ft:[104,172],kb:'f',hd:[116,112],eb:'d'}},
  lunge:{top:{hip:[100,112],tor:180,ft:[112,172],ft2:[88,172],kb:'f',kb2:'d',hd:[100,112],eb:'f'},bot:{hip:[96,140],tor:180,ft:[124,172],ft2:[68,172],kb:'f',kb2:'d',hd:[96,140],eb:'f'}},
  bulgarian:{top:{hip:[104,112],tor:180,ft:[120,172],ft2:[64,140],kb:'f',kb2:'d',hd:[104,112]},bot:{hip:[98,138],tor:178,ft:[124,172],ft2:[62,140],kb:'f',kb2:'d',hd:[98,138]},props:[['bench',36,78,142]]},
+ deadlift:{top:{hip:[100,112],tor:180,ft:[100,172],kb:'f',hd:[102,112],eb:'f'},bot:{hip:[62,142],tor:120,ft:[100,172],kb:'f',hd:[102,165],eb:'f'},kf:[{k:.35,p:{hip:[76,118],tor:140,hd:[102,126]}},{k:.7,p:{hip:[66,134],tor:132,hd:[100,149]}}]},
  hinge:{top:{hip:[98,112],tor:180,ft:[100,172],kb:'f',hd:[99,111],eb:'f'},bot:{hip:[82,114],tor:98,ft:[100,172],kb:'f',hd:[128,153],eb:'f'}},
  bridge:{top:{hip:[100,146],tor:-61,ft:[140,172],kb:'u',hd:[74,174],eb:'d'},bot:{hip:[104,168],tor:-90,ft:[140,172],kb:'u',hd:[74,174],eb:'d'},props:[['mat']]},
  thrust:{top:{hip:[108,126],tor:-75,ft:[150,172],kb:'u',hd:[70,150],eb:'d'},bot:{hip:[100,152],tor:-108,ft:[150,172],kb:'u',hd:[66,150],eb:'d'},props:[['bench',30,74,142]]},
@@ -2195,7 +2196,7 @@ const FIGP={
  preacher:{top:{hip:[96,140],tor:176,ft:[126,172],kb:'f',hd:[122,90],eb:'d'},bot:{hip:[96,140],tor:176,ft:[126,172],kb:'f',hd:[131,127],eb:'d'},
   w:[['bx',[-16,30,-14],[8,37,14],'p'],['bx',[-6,0,-3],[0,30,3],'p'],['ob',[2.7,71.5,0],[9.9,-9.9,0],[-1.8,-1.8,0],[0,0,20],'p'],['bx',[-4,0,-3],[2,64,3],'p']]},
  donkey:{top:{hip:[72,138],tor:92,ft:[42,174],ft2:[42,174],kb:'d',kb2:'d',hd:[118,174],eb:'d'},bot:{hip:[72,138],tor:92,ft:[42,174],ft2:[42,106],kb:'d',kb2:'d',hd:[118,174],eb:'d'},props:[['mat']]},
- gm:{top:{hip:[98,112],tor:180,ft:[100,172],kb:'f',hd:[94,76],eb:'b'},bot:{hip:[82,114],tor:98,ft:[100,172],kb:'f',hd:[124,116],eb:'b'},bar:'sh'},
+ gm:{top:{hip:[98,112],tor:180,ft:[100,172],kb:'f',hd:[94,64],eb:'b'},bot:{hip:[82,114],tor:98,ft:[100,172],kb:'f',hd:[130,103],eb:'b'},bar:'sh'},
  shrug:{top:{...STAND,hd:[100,112],shr:0},bot:{...STAND,hd:[100,104],shr:8}},
  hyper:{top:{hip:[104,100],tor:136,ft:[62,148],kb:'u',hd:[124,84],eb:'d'},bot:{hip:[104,100],tor:20,ft:[62,148],kb:'u',hd:[114,124],eb:'u'},
   w:[['ob',[10.8,73,0],[-7.9,-9,0],[2.2,-2,0],[0,0,14],'p'],['cy',[-44,36,-12],[-44,36,12],4,'p'],['cy',[-50,0,0],[6,66,0],2.6,'p'],['cy',[-44,0,0],[-42,32,0],2.4,'p'],['bx',[-62,0,-16],[20,4,16],'p']]},
@@ -2255,6 +2256,7 @@ const FIG_GRP={'חזה':'pushup','גב':'row','כתפיים':'ohp','ידיים':
 /* מכשירים, ספסלים וציוד לפי שם התרגיל. נבדק לפני FIG_RULES. w = אביזרים בקואורדינטות עולם, np = בלי האביזרים של התבנית */
 const F3TOWER=x=>[['cy',[x+4,0,0],[x+4,172,0],3,'p'],['bx',[x-4,0,-12],[x+12,4,12],'p']];
 const FIG_X=[
+ [/^דדליפט$/,{p:'deadlift'}],
  [/פייק/,{p:'pike',eq:null}],[/קימה טורקית/,{p:'getup',eq:'kb'}],[/אינצ׳וורם/,{p:'inchworm',eq:null}],[/נגיעת כתף/,{p:'tap',eq:null}],
  [/שרוגס/,{p:'shrug',eq:'bar'}],[/Donkey Kick|על ארבע/,{p:'donkey',eq:null}],[/גוד מורנינג/,{p:'gm',eq:'bar'}],[/היפראקסטנשן/,{p:'hyper'}],
  [/פרפר במכונה/,{p:'pecdeck',eq:null}],[/פרפר הפוך במכונה/,{p:'revdeck',eq:null}],[/פרפר בדמבלים/,{p:'flyB',eq:'db'}],
@@ -2315,12 +2317,29 @@ function fLerp(A,B,k){
   });
   return o;
 }
+/* תנוחה בזמן k: בלי תנוחות ביניים זו אינטרפולציה רגילה; עם pt.kf (תנוחות ביניים {k, p:{שדות שנדרסים}}) המסלול עובר דרכן בעקומה חלקה (Hermite), כמו בתנועה אמיתית שלא נעה בקו ישר */
+function fAt(pt,k){
+  if(!pt.kf)return fLerp(pt.top,pt.bot,k);
+  let K=pt._K;
+  if(!K)K=pt._K=[{k:0,P:pt.top},...pt.kf.map(f=>({k:f.k,P:{...fLerp(pt.top,pt.bot,f.k),...f.p}})),{k:1,P:pt.bot}].sort((a,b)=>a.k-b.k);
+  let i=0;while(i<K.length-2&&k>K[i+1].k)i++;
+  const A=K[i],B=K[i+1],h=B.k-A.k,t=Math.min(1,Math.max(0,(k-A.k)/h)),pr=K[i-1]||A,nx=K[i+2]||B,t2=t*t,t3=t2*t,h00=2*t3-3*t2+1,h10=t3-2*t2+t,h01=-2*t3+3*t2,h11=t3-t2;
+  const f=(va,vb,vp,vn)=>h00*va+h10*(vb-vp)/((B.k-pr.k)||1)*h+h01*vb+h11*(vn-va)/((nx.k-A.k)||1)*h;
+  const o={};
+  new Set([...Object.keys(A.P),...Object.keys(B.P)]).forEach(key=>{
+    const a=A.P[key]??B.P[key],b=B.P[key]??A.P[key];
+    if(typeof a==='number')o[key]=f(a,b,pr.P[key]??a,nx.P[key]??b);
+    else if(Array.isArray(a)){const p=pr.P[key]??a,n=nx.P[key]??b;o[key]=a.map((v,j)=>f(v,b[j]??v,p[j]??v,n[j]??b[j]??v))}
+    else o[key]=t<.5?a:b;
+  });
+  return o;
+}
 /* ---------- הדמיה תלת-ממדית ----------
    מכל תנוחה נבנה שלד תלת-ממדי (X קדימה, Y למעלה, Z לצדדים) ועליו גוף, ציוד, מכשירים וספסלים.
    הזווית נבחרת אוטומטית לכל תרגיל: זו שבה רואים הכי הרבה תנועה והגפיים לא מסתירות זו את זו.
    מוצגות גם "רוחות" שקופות של תנוחת ההתחלה והסיום, וקו מסלול של המפרק שזז הכי הרבה */
 const F3W={pullup:26,pulldown:26,hangleg:24,bench:22,skull:9,pullover:9,ohp:20,squatBar:22,pushup:20,pushupKnee:20,pushupIncline:20,dip:17,benchdip:15,row:16,hinge:15,clean:15,front:14,curl:15,ohext:7,slam:9,burpee:20,swing:6,goblet:7,cablerow:8,facepull:16,press:4,ropes:12,sled:14,plank:12,mountain:20,rollout:9,legswing:15,legraise:16,crunch:10,bicycle:10,bridge:16,thrust:20,catcow:14,birddog:14,superman:16,deadbug:14,kneelcrunch:7,donkey:14,invrow:20,ski:14,jrope:20,preacher:13,roll:9,shrug:17,hyper:8};
-const F3S={squat:15,squatBar:16,goblet:16,hinge:11,swing:15,clean:12,slam:13,bridge:11,thrust:12,ohp:11,wallsit:12,legpress:13,calf:9,boxjump:13};
+const F3S={deadlift:11,squat:15,squatBar:16,goblet:16,hinge:11,swing:15,clean:12,slam:13,bridge:11,thrust:12,ohp:11,wallsit:12,legpress:13,calf:9,boxjump:13};
 const F3F={upright:9,hipcircle:9,twist:12,abduct:5};
 const F3V=(p,z)=>[p[0]-100,179-p[1],z];
 const v3a=(a,b)=>a.map((v,i)=>v+b[i]),v3s=(a,b)=>a.map((v,i)=>v-b[i]),v3m=(a,s)=>a.map(v=>v*s),v3d=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
@@ -2335,7 +2354,7 @@ function f3IK(R,T,l1,l2,pole){
 }
 /* שלד: אגן H, כתפיים S, כיווני גו/פנים/צד, ומפרקים לכל צד (0 = צד +lat, 1 = הצד השני) */
 function f3Skel(pt,k,sp){
-  const P=fLerp(pt.top,pt.bot,k),pn=sp.p,sk={sh:[],hp:[],kn:[],an:[],toe:[],el:[],hn:[]};
+  const P=fAt(pt,k),pn=sp.p,sk={sh:[],hp:[],kn:[],an:[],toe:[],el:[],hn:[]};
   if(pt.n3){
     const tor=v3n(P.tor),lat=v3n(v3c(v3n(P.fr),tor)),fr=v3c(tor,lat),H=P.H,S=v3a(H,v3m(tor,46));
     let td=[fr[0],0,fr[2]];td=Math.hypot(...td)<.3?[1,0,0]:v3n(td);
@@ -2429,7 +2448,7 @@ function f3Gear(pt,sk,sp,k,o){
   else if(eq==='cbar'){const d=v3n(v3s(hands[0],hands[1]));C(v3a(hands[0],v3m(d,5)),v3a(hands[1],v3m(d,-5)),1.6,'q',1)}
   else if(eq==='tbar'){const piv=[-74,3,0],d=v3n(v3s(hm,piv));C(piv,v3a(hm,v3m(d,14)),2,'q',1);C(v3a(hm,v3m(d,7)),v3a(hm,v3m(d,11)),13,'p',1)}
   // אביזרים בקואורדינטות 2D של התבנית
-  const P=fLerp(pt.top,pt.bot,k);
+  const P=fAt(pt,k);
   (sp.np?[]:pt.props||[]).forEach(pr=>{
     const [t,x1,x2,y]=pr;
     if(t==='bench'||t==='seat'){
@@ -2601,12 +2620,12 @@ function f3Draw2D(cv,e,k,yaw,pitch){
     else if(s.t==='x')f3Box(ctx,s,c,cm,pj);
   }
   // מסלול התנועה: המפרק שזז הכי הרבה (ובן הזוג שלו), עם חצים בשני הקצוות
-  if(!pt.hold)f3Trail(ctx,pt,sp,k,pj,pal);
+  if(F3DET&&!pt.hold)f3Trail(ctx,pt,sp,k,pj,pal);
   if(pt.v!=='f')f3Cue(ctx,sp,sk,pj);
-  if(r.width>=170)f3Labels(ctx,sp,sk,pj);
+  if(F3DET&&r.width>=170)f3Labels(ctx,sp,sk,pj);
 }
 /* ===== תלת-ממד אמיתי (three.js): תאורת סטודיו, צללים והשתקפויות. בלי WebGL חוזרים לציור הדו-ממדי ===== */
-let F3G=null,F3FAIL=0;
+let F3G=null,F3FAIL=0,F3DET=false;try{F3DET=localStorage.getItem('gt_f3det')==='1'}catch(e){}
 function f3Tex(w,h,fn){const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return t}
 function f3Init(){
   if(F3G!==null)return F3G||null;
@@ -2774,7 +2793,7 @@ function f3Init(){
       const skl=f3Skel(pt,k,spc),o=[],R=realGet();f3Body(skl,Ms,o);const nb=o.length;f3Gear(pt,skl,spc,k,o);
       for(const gk in REAL)if(REAL[gk].holder)REAL[gk].holder.visible=REAL[gk]===R;
       if(R){retarget(R,skl,Ms,(spc.eq&&spc.eq!=='ball')||pt.bar==='sh');realMus(R,Ms)}
-      if(!pt.hold)[0,1].forEach(kk=>f3Body(f3Skel(pt,kk,spc),Ms,o,true));
+      if(F3DET&&!pt.hold)[0,1].forEach(kk=>f3Body(f3Skel(pt,kk,spc),Ms,o,true));
       /* מצלמה שזהה לזו של הציור הדו-ממדי: אותו מרחק (700), אותה הגדלה, אותו סיבוב והטיה */
       const a=FG(yaw),p=FG(pitch==null?14:pitch),ca=Math.cos(a),sa=Math.sin(a),cp=Math.cos(p),sp_=Math.sin(p);
       const tx=ft.ox,ty=ft.ty,tz=ft.oz,sc2=Math.min(W/200,Hh/186),offx=(W-200*sc2)/2,offy=(Hh-186*sc2)/2;
@@ -2812,9 +2831,9 @@ function f3Init(){
       /* שכבת הדגשות דו-ממדית מעל התלת-ממד: מסלול תנועה, קו טכניקה ותוויות, באותה הקרנה של המצלמה */
       const pj=q=>{vq.set(q[0],q[1],q[2]).applyMatrix4(cam.matrixWorldInverse);const z=vq.z;vq.applyMatrix4(cam.projectionMatrix);return [((vq.x+1)/2*W-offx)/sc2,((1-vq.y)/2*Hh-offy)/sc2,z,1]};
       ctx.setTransform(sc2,0,0,sc2,offx,offy);
-      if(!pt.hold)f3Trail(ctx,pt,spc,k,pj,pal);
+      if(F3DET&&!pt.hold)f3Trail(ctx,pt,spc,k,pj,pal);
       if(pt.v!=='f')f3Cue(ctx,spc,skl,pj);
-      if(r.width>=170)f3Labels(ctx,spc,skl,pj);
+      if(F3DET&&r.width>=170)f3Labels(ctx,spc,skl,pj);
     };
     F3G={draw,REAL};return F3G;
   }catch(err){console.warn('3D off',err);F3G=false;return null}
@@ -2908,8 +2927,8 @@ function figCard(e){
   const vol=t==='t'?`${(it&&it.sec)||30} שניות`:t==='s'?`${(it&&it.reps)||(g.min+'–'+g.max)} חזרות`:`${(it&&it.min)||10} דקות`;
   const muscles=(INFO[e.name]&&INFO[e.name].m)||'',hold=(FIGP[figSpec(e).p]||{}).hold;
   return `<div class="figcard"><div class="figt">${fmtName(e.name)}</div>${figSVG(e)}<div class="figph">⬇ למטה</div>
-  <div class="figv"><button class="on" onclick="figView(this,null)">⭐ זווית מומלצת</button><button onclick="figView(this,0)">צד</button><button onclick="figView(this,90)">חזית</button><button onclick="figView(this,-1)">🔄 360°</button></div>
-  <div class="fighint">${hold?'':'<span style="color:#f59e0b">┅ מסלול התנועה</span> · צללית שקופה = תנוחת התחלה וסיום · '}אפשר לגרור כדי לסובב</div>
+  <div class="figv"><button class="on" onclick="figView(this,null)">⭐ זווית מומלצת</button><button onclick="figView(this,0)">צד</button><button onclick="figView(this,90)">חזית</button><button onclick="figView(this,-1)">🔄 360°</button><button class="figd${F3DET?' on':''}" onclick="figDet(this)">ℹ️ פרטים</button></div>
+  <div class="fighint">אפשר לגרור כדי לסובב · «פרטים» מציג מסלול תנועה, צללית התחלה/סיום ושמות שרירים</div>
   ${muscles?`<div class="figm"><span class="dot"></span> שרירים עובדים: ${esc(muscles)}</div>`:''}
   <div class="figft"><span><b>${t==='c'||t==='w'?1:sets}</b> סטים</span><span><b>${vol}</b></span><span><b>${rest}</b>ש׳ מנוחה</span></div></div>`;
 }
@@ -2947,10 +2966,11 @@ function figLoop(){
 }
 function figKick(){if(!figRAF)figRAF=requestAnimationFrame(figLoop)}
 /* כפתורי זווית: מומלצת, צד, חזית, או סיבוב מלא. זווית שנבחרה נשמרת עד שבוחרים אחרת */
+function figDet(b){F3DET=!F3DET;try{localStorage.setItem('gt_f3det',F3DET?'1':'0')}catch(e){}document.querySelectorAll('.figd').forEach(x=>x.classList.toggle('on',F3DET))}
 function figView(b,yaw){
   const card=b.closest(".figcard"),cv=card&&card.querySelector("canvas.fig");if(!cv)return;
   const st=f3State(cv,ex(cv.dataset.x));
-  card.querySelectorAll(".figv button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
+  card.querySelectorAll(".figv button:not(.figd)").forEach(x=>x.classList.remove("on"));b.classList.add("on");
   st.spin=yaw===-1;
   if(yaw==null){st.hold=0;st.man=-1e9;return}
   if(yaw>=0){st.yaw=yaw;st.pitch=14;st.hold=Infinity}
