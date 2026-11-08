@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f1115">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/png" href="favicon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="GymTrack">
@@ -938,7 +938,7 @@ function vToday(){
   const bk=!S.current&&needsBackup()?`<div class="banner"><b>💾 הגיע הזמן לגבות</b><div class="mu" style="margin:4px 0 8px">${S.settings.lastBackup?'הגיבוי האחרון היה לפני יותר משבועיים':'עוד לא גיבית את הנתונים'}. הנתונים שמורים רק במכשיר הזה, וגיבוי לוקח שנייה.</div><button class="pri sm" onclick="exportJSON()">גבה עכשיו</button> <button class="sm" onclick="S.settings.lastBackup=Date.now()-7*864e5;save();render()">הזכר לי בעוד שבוע</button></div>`:'';
   const dlb=!S.current&&isDeloadWeek(Date.now())?`<div class="banner"><b>🧘 השבוע: שבוע הקלה (שבוע ${weekNo(Date.now())})</b><div class="mu">אחרי כמה שבועות של התקדמות הגוף צריך להתאושש. ההמלצות השבוע יהיו עם כ-10% פחות משקל ופחות סטים. בשבוע הבא חוזרים להתקדם.</div></div>`:'';
   const sy=S.account&&!S.current&&Date.now()-(S.settings.lastCloud||0)>864e5?`<div class="banner"><b>☁️ לסנכרן עם Google Drive?</b><div class="mu" style="margin:4px 0 8px">הסנכרון האחרון היה לפני יותר מיום.</div><button class="pri sm" onclick="cloudSync()">סנכרן עכשיו</button></div>`:"";
-  let h=`<h1>היי${S.account&&S.account.name?" "+esc(S.account.name.split(" ")[0]):""} 👋</h1>${bk}${sy}${dlb}${remindBanner()}${S.current?'':calBanner()+restTip()}<div class="stats">
+  let h=`<div class="row" style="gap:8px;margin-bottom:6px"><img src="icon-192.png" alt="" width="34" height="34" style="border-radius:9px"><b style="font-size:17px;letter-spacing:.3px">Gym<span style="color:var(--ac)">Track</span></b></div><h1>היי${S.account&&S.account.name?" "+esc(S.account.name.split(" ")[0]):""} 👋</h1>${bk}${sy}${dlb}${remindBanner()}${S.current?'':calBanner()+restTip()}<div class="stats">
    <div class="stat"><b>${cnt}/${goal}</b><span class="mu">יעד השבוע${goal<S.settings.goal?' (מותאם ליומן)':''}</span></div>
    <div class="stat"><b>🔥 ${streak()}</b><span class="mu">שבועות ברצף</span></div>
    <div class="stat"><b>${S.workouts.length}</b><span class="mu">אימונים</span></div></div>${S.current?'':dailyCard()+checkinCard()+stuckCard()}
