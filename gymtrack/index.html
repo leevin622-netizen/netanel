@@ -2074,9 +2074,12 @@ function calcRun(){
   const km=v('km'),mn=(v('min')||0)+(v('sec')||0)/60;
   if(km>0&&mn>0){const pc=mn/km,ps=Math.round(pc*60);o('pace',`קצב: ${b(Math.floor(ps/60)+':'+String(ps%60).padStart(2,'0'))} דק׳/ק"מ · מהירות ${b((km/(mn/60)).toFixed(1))} קמ"ש`)}else o('pace','מלאו מרחק וזמן');
 }
+const lnOpen={};
+const lnSec=(id,t,body)=>`<details id="s-${id}" ${lnOpen[id]?'open':''} ontoggle="lnOpen['${id}']=this.open"><summary style="font-size:18px;font-weight:700;margin:18px 0 8px;cursor:pointer">${t}</summary>${body}</details>`;
+function lnGo(id){const d=document.getElementById('s-'+id);if(d){d.open=true;d.scrollIntoView({behavior:'smooth'})}}
 function vLearn(){
   const n=nutri(),G={lose:'ירידה במשקל',abs:'חיטוב בטן',muscle:'בניית שריר',strength:'כוח',fit:'כושר כללי'};
-  let h=`<h1>📚 ידע</h1><div class="chips" style="margin-bottom:12px"><a class="lnk" onclick="document.getElementById('s-nut').scrollIntoView({behavior:'smooth'})">🥗 תזונה</a><a class="lnk" onclick="document.getElementById('s-calc').scrollIntoView({behavior:'smooth'})">🧮 מחשבונים</a><a class="lnk" onclick="document.getElementById('s-pro').scrollIntoView({behavior:'smooth'})">🎥 ללמוד מהמומחים</a><a class="lnk" onclick="document.getElementById('s-app').scrollIntoView({behavior:'smooth'})">📱 אפליקציות ואתרים</a></div>`;
+  let h=`<h1>📚 ידע</h1><div class="chips" style="margin-bottom:12px"><a class="lnk" onclick="document.getElementById('s-nut').scrollIntoView({behavior:'smooth'})">🥗 תזונה</a><a class="lnk" onclick="lnGo('calc')">🧮 מחשבונים</a><a class="lnk" onclick="lnGo('pro')">🎥 ללמוד מהמומחים</a><a class="lnk" onclick="lnGo('app')">📱 אפליקציות ואתרים</a></div>`;
   h+=`<h2 id="s-nut">🥗 התזונה שלך</h2><div class="card">`;
   if(n){
     h+=`<div class="mu">לפי ${G[n.goal]}, ${n.kg} ק"ג ו-${(S.profile.days||[]).length||S.settings.goal} אימונים בשבוע</div>
@@ -2091,11 +2094,11 @@ function vLearn(){
   if(n)h+=`<div class="card"><b>טיפים ל${G[n.goal]}</b><ul class="tips">${(NUT_TIPS[n.goal]||[]).map(t=>`<li>${t}</li>`).join('')}</ul></div>`;
   h+=`<div class="card"><b>סביב האימון</b><ul class="tips"><li>⏰ <b>1–2 שעות לפני:</b> פחמימה עם מעט חלבון, למשל יוגורט עם בננה, או טוסט עם גבינה</li><li>🍽️ <b>עד כשעתיים אחרי:</b> חלבון ופחמימה, למשל עוף עם אורז, או שייק חלבון עם פרי</li><li>🍗 <b>בכל ארוחה:</b> 20–40 גרם חלבון, מחולק לאורך היום</li><li>😴 <b>שינה:</b> 7–9 שעות. בשינה השריר מתאושש ונבנה</li></ul>
   <div class="mu">ההמלצות כלליות ואינן תחליף לייעוץ אישי. במצב רפואי, בהריון או בהפרעת אכילה, כדאי להתייעץ עם דיאטנית.</div></div>`;
-  h+=`<h2 id="s-calc">🧮 מחשבונים</h2>`+calcCards();setTimeout(calcRun,0);
-  h+=`<h2 id="s-pro">🎥 ללמוד מהמומחים</h2><div class="mu" style="margin-bottom:8px">יוצרי תוכן מוכרים בעולם הכושר. בכרטיס של כל תרגיל (ℹ️) יש קישור ישיר לסרטונים שלהם על אותו תרגיל.</div>`
-   +CREATORS.map(c=>`<div class="card"><b>${esc(c.n)}</b><div class="mu" style="margin:2px 0 8px">${esc(c.d)}</div><div class="row" style="flex-wrap:wrap"><a class="lnk" target="_blank" rel="noopener" href="https://www.youtube.com/@${c.yt}">▶️ YouTube</a><a class="lnk" target="_blank" rel="noopener" href="https://www.instagram.com/${c.ig}/">📸 Instagram</a><a class="lnk" target="_blank" rel="noopener" href="https://www.tiktok.com/search?q=${encodeURIComponent(c.n)}">🎵 TikTok</a></div></div>`).join('');
-  h+=`<h2 id="s-app">📱 אפליקציות ואתרים מומלצים</h2><div class="mu" style="margin-bottom:8px">המלצות כלליות, ללא שיתוף פעולה מסחרי.</div>`
-   +APPS.map(a=>`<a class="card applnk" target="_blank" rel="noopener" href="${a.u}"><div class="row sp"><b>${esc(a.n)}</b><span class="mu">${a.t}</span></div><div class="mu">${esc(a.d)}</div></a>`).join('');
+  h+=lnSec('calc','🧮 מחשבונים',calcCards());setTimeout(calcRun,0);
+  h+=lnSec('pro','🎥 ללמוד מהמומחים',`<div class="mu" style="margin-bottom:8px">יוצרי תוכן מוכרים בעולם הכושר. בכרטיס של כל תרגיל (ℹ️) יש קישור ישיר לסרטונים שלהם על אותו תרגיל.</div>`
+   +CREATORS.map(c=>`<div class="card"><b>${esc(c.n)}</b><div class="mu" style="margin:2px 0 8px">${esc(c.d)}</div><div class="row" style="flex-wrap:wrap"><a class="lnk" target="_blank" rel="noopener" href="https://www.youtube.com/@${c.yt}">▶️ YouTube</a><a class="lnk" target="_blank" rel="noopener" href="https://www.instagram.com/${c.ig}/">📸 Instagram</a><a class="lnk" target="_blank" rel="noopener" href="https://www.tiktok.com/search?q=${encodeURIComponent(c.n)}">🎵 TikTok</a></div></div>`).join(''));
+  h+=lnSec('app','📱 אפליקציות ואתרים מומלצים',`<div class="mu" style="margin-bottom:8px">המלצות כלליות, ללא שיתוף פעולה מסחרי.</div>`
+   +APPS.map(a=>`<a class="card applnk" target="_blank" rel="noopener" href="${a.u}"><div class="row sp"><b>${esc(a.n)}</b><span class="mu">${a.t}</span></div><div class="mu">${esc(a.d)}</div></a>`).join(''));
   if(PARTNERS.length)h+=`<h2>🤝 שותפים</h2>`+PARTNERS.map(a=>`<a class="card applnk" target="_blank" rel="noopener" href="${a.u}"><b>${esc(a.n)}</b><div class="mu">${esc(a.d)}</div>${a.code?`<div class="sug">🎁 קוד הטבה: <b>${esc(a.code)}</b></div>`:''}</a>`).join('');
   return h;
 }
@@ -2224,7 +2227,8 @@ const FIGP={
  hinge:{top:{hip:[98,112],tor:180,ft:[100,172],kb:'f',hd:[99,111],eb:'f'},bot:{hip:[82,114],tor:98,ft:[100,172],kb:'f',hd:[128,153],eb:'f'}},
  bridge:{top:{hip:[100,146],tor:-61,ft:[140,172],kb:'u',hd:[74,174],eb:'d'},bot:{hip:[104,168],tor:-90,ft:[140,172],kb:'u',hd:[74,174],eb:'d'},props:[['mat']]},
  thrust:{top:{hip:[108,133],tor:-90,ft:[138,172],kb:'u',hd:[108,129],eb:'d'},bot:{hip:[100,158],tor:-122,ft:[138,172],kb:'u',hd:[100,153],eb:'d'},props:[['bench',30,74,142]]},
- pushup:{top:{hip:[80,138],tor:100,ft:[28,170],kb:'u',hd:[127,172],eb:'u'},bot:{hip:[80,156],tor:96,ft:[28,170],kb:'u',hd:[127,172],eb:'u'}},
+ pushup:{top:{hip:[80,148],tor:115,ft:[28,170],kb:'u',hd:[127,172],eb:'u'},bot:{hip:[80,158],tor:98,ft:[28,170],kb:'u',hd:[127,172],eb:'u'}},
+ pushupD:{top:{hip:[80,148],tor:115,ft:[28,170],kb:'u',hd:[124,172],eb:'u'},bot:{hip:[80,158],tor:98,ft:[28,170],kb:'u',hd:[124,172],eb:'u'}},
  pushupKnee:{top:{hip:[84,140],tor:102,ft:[52,174],kb:'u',hd:[129,172],eb:'u'},bot:{hip:[84,156],tor:96,ft:[52,174],kb:'u',hd:[129,172],eb:'u'}},
  pushupIncline:{top:{hip:[88,131],tor:140,ft:[28,170],kb:'u',hd:[122,140],eb:'u'},bot:{hip:[86,137],tor:125,ft:[28,170],kb:'u',hd:[122,140],eb:'u'},props:[['bench',112,160,142]]},
  bench:{top:{hip:[128,132],tor:-90,ft:[156,172],kb:'d',hd:[82,86],eb:'d'},bot:{hip:[128,132],tor:-90,ft:[156,172],kb:'d',hd:[86,120],eb:'d'},props:[['bench',56,142,140]]},
@@ -2246,7 +2250,7 @@ const FIGP={
  calf:{top:{hip:[100,102],tor:180,ft:[100,162],kb:'f',toe:[10,12],hd:[100,102]},bot:{hip:[100,112],tor:180,ft:[100,172],kb:'f',toe:[11,3],hd:[100,112]}},
  wallsit:{top:{hip:[78,140],tor:180,ft:[110,172],kb:'f',hd:[108,136],eb:'d'},bot:{hip:[78,141],tor:180,ft:[110,172],kb:'f',hd:[108,137],eb:'d'},props:[['wall',70]],hold:1},
  legpress:{top:{hip:[66,150],tor:-130,ft:[124,96],kb:'u',hd:[60,160],eb:'d'},bot:{hip:[66,150],tor:-130,ft:[104,112],kb:'u',hd:[60,160],eb:'d'},props:[['seat',40,90,158],['plate']]},
- legext:{top:{hip:[84,128],tor:178,ft:[142,130],kb:'f',hd:[86,142],eb:'d'},bot:{hip:[84,128],tor:178,ft:[112,166],kb:'f',hd:[86,142],eb:'d'},props:[['seat',62,104,134]]},
+ legext:{top:{hip:[84,128],tor:208,ft:[142,130],kb:'f',hd:[86,142],eb:'d'},bot:{hip:[84,128],tor:208,ft:[112,166],kb:'f',hd:[86,142],eb:'d'},props:[['seat',62,104,134]],w:[['bx',[-28.0,53.4,-13],[-22.0,62.4,13],'p'],['bx',[-32.0,60.4,-13],[-26.0,69.4,13],'p'],['bx',[-36.0,67.3,-13],[-30.0,76.3,13],'p'],['bx',[-40.0,74.2,-13],[-34.0,83.2,13],'p'],['bx',[-44.0,81.1,-13],[-38.0,90.1,13],'p'],['bx',[-48.0,88.1,-13],[-42.0,97.1,13],'p'],['bx',[-52.0,95.0,-13],[-46.0,104.0,13],'p']]},
  legcurl:{top:{hip:[104,150],tor:90,ft:[70,118],kb:'u',hd:[176,154],eb:'d'},bot:{hip:[104,150],tor:90,ft:[44,152],kb:'u',hd:[176,154],eb:'d'},props:[['bench',38,172,156]]},
  stepup:{top:{hip:[118,86],tor:180,ft:[124,140],ft2:[114,140],kb:'f',kb2:'f',hd:[118,132]},bot:{hip:[96,112],tor:180,ft:[124,140],ft2:[98,172],kb:'f',kb2:'f',hd:[96,158]},props:[['box',108,152,142]]},
  kickback:{top:{hip:[100,112],tor:160,ft:[100,172],ft2:[56,126],kb:'f',kb2:'d',hd:[124,100],eb:'d'},bot:{hip:[100,112],tor:160,ft:[100,172],ft2:[94,172],kb:'f',kb2:'f',hd:[124,100],eb:'d'}},
@@ -2255,7 +2259,7 @@ const FIGP={
  pike:{top:{hip:[78,96],tor:48,ft:[34,170],kb:'u',hd:[127,172],eb:'u'},bot:{hip:[88,106],tor:30,ft:[34,170],kb:'u',hd:[127,172],eb:'u'}},
  inchworm:{top:{hip:[82,114],tor:98,ft:[100,172],kb:'f',hd:[128,170],eb:'f'},bot:{hip:[78,150],tor:96,ft:[26,172],kb:'u',hd:[150,174],eb:'d'}},
  tap:{top:{hip:[78,150],tor:96,ft:[26,172],kb:'u',hd:[150,174],hd2:[150,174],eb:'d'},bot:{hip:[78,150],tor:96,ft:[26,172],kb:'u',hd:[150,174],hd2:[134,128],eb:'d'}},
- getup:{top:{hip:[112,168],tor:-90,ft:[160,172],kb:'u',hd:[52,108],hd2:[56,172],eb:'f'},bot:{hip:[100,168],tor:170,ft:[150,172],kb:'u',hd:[92,50],hd2:[70,172],eb:'f'},props:[['mat']]},
+ getup:{top:{hip:[112,168],tor:-90,ft:[160,172],kb:'u',hd:[52,108],hd2:[56,172],eb:'f'},bot:{hip:[100,168],tor:-190,ft:[150,172],kb:'u',hd:[92,50],hd2:[70,172],eb:'f'},props:[['mat']]},
  mountain:{top:{hip:[78,140],tor:100,ft:[104,158],kb:'d',ft2:[26,170],kb2:'u',hd:[126,172],eb:'u'},bot:{hip:[78,140],tor:100,ft:[26,170],kb:'u',ft2:[104,158],kb2:'d',hd:[126,172],eb:'u'}},
  crunch:{top:{hip:[112,168],tor:-125,ft:[150,172],kb:'u',hd:[66,134],eb:'u'},bot:{hip:[112,168],tor:-90,ft:[150,172],kb:'u',hd:[54,160],eb:'u'},props:[['mat']]},
  bicycle:{top:{hip:[112,168],tor:-118,ft:[112,136],ft2:[172,160],kb:'u',kb2:'u',hd:[70,140],eb:'u'},bot:{hip:[112,168],tor:-118,ft:[172,160],ft2:[112,136],kb:'u',kb2:'u',hd:[70,140],eb:'u'},props:[['mat']]},
@@ -2357,8 +2361,13 @@ const FIG_RULES=[
 const FIG_GRP={'חזה':'pushup','גב':'row','כתפיים':'ohp','ידיים':'curl','רגליים':'squat','ישבן':'bridge','בטן וליבה':'crunch','קרדיו':'run','פונקציונלי':'burpee','חימום וניידות':'jack'};
 /* מכשירים, ספסלים וציוד לפי שם התרגיל. נבדק לפני FIG_RULES. w = אביזרים בקואורדינטות עולם, np = בלי האביזרים של התבנית */
 const F3TOWER=x=>[['cy',[x+4,0,0],[x+4,172,0],3,'p'],['bx',[x-4,0,-12],[x+12,4,12],'p']];
+/* מפתחות תנועה שחולצו מסרטוני הדגמה (CC BY 3.0, Prototyperspective) */
+Object.assign(FIGP,{squat:{top:{hip:[101.6, 107.6],tor:178.6,ft:[102.2, 172.0],hd:[115.9, 68.5],kb:"f",eb:"d"},bot:{hip:[73.8, 148.9],tor:181.4,ft:[102.2, 172.0],hd:[95.4, 115.4],kb:"f",eb:"d"},kf:[{k:0.111,p:{hip:[100.9, 107.7],tor:179.1,hd:[115.8, 69.1],ft:[102.2, 172.0]}},{k:0.222,p:{hip:[101.7, 107.7],tor:177.7,hd:[116.3, 68.5],ft:[102.2, 172.0]}},{k:0.333,p:{hip:[102.4, 109.2],tor:176.8,hd:[117.4, 70.2],ft:[102.2, 172.0]}},{k:0.444,p:{hip:[102.3, 112.4],tor:176.4,hd:[119.6, 71.2],ft:[102.2, 172.0]}},{k:0.556,p:{hip:[94.5, 118.6],tor:176.9,hd:[114.0, 78.3],ft:[102.2, 172.0]}},{k:0.667,p:{hip:[86.5, 130.2],tor:176.4,hd:[112.8, 92.3],ft:[102.2, 172.0]}},{k:0.778,p:{hip:[80.9, 138.0],tor:176.5,hd:[108.7, 102.6],ft:[102.2, 172.0]}},{k:0.889,p:{hip:[75.7, 145.4],tor:178.1,hd:[102.4, 110.8],ft:[102.2, 172.0]}}]},
+row:{top:{hip:[82.1, 112.2],tor:146.4,ft:[86.6, 172.0],hd:[86.5, 105.6],kb:"f",eb:"b"},bot:{hip:[84.3, 112.4],tor:131.9,ft:[86.6, 172.0],hd:[109.8, 127.7],kb:"f",eb:"b"},kf:[{k:0.111,p:{hip:[81.0, 112.7],tor:149.6,hd:[86.7, 107.0],ft:[86.6, 172.0]}},{k:0.222,p:{hip:[87.3, 113.7],tor:153.3,hd:[98.5, 111.8],ft:[86.6, 172.0]}},{k:0.333,p:{hip:[91.3, 114.6],tor:152.7,hd:[107.5, 116.8],ft:[86.6, 172.0]}},{k:0.444,p:{hip:[91.1, 114.5],tor:145.9,hd:[112.5, 120.9],ft:[86.6, 172.0]}},{k:0.556,p:{hip:[91.3, 114.1],tor:141.9,hd:[114.3, 123.0],ft:[86.6, 172.0]}},{k:0.667,p:{hip:[87.7, 112.9],tor:137.3,hd:[112.0, 124.7],ft:[86.6, 172.0]}},{k:0.778,p:{hip:[85.7, 112.5],tor:133.7,hd:[111.0, 126.0],ft:[86.6, 172.0]}},{k:0.889,p:{hip:[85.0, 112.4],tor:132.1,hd:[110.5, 127.4],ft:[86.6, 172.0]}}]}});
+const FIGCRED={squat:1,row:1};
 const FIG_X=[
  [/^דדליפט$/,{p:'deadlift'}],
+ [/סמיכה יהלום/,{p:'pushupD',eq:null}],[/חתירה במכונה$/,{p:'rowerg',eq:'cbar'}],[/איכר/,{p:'farmer',eq:'fw'}],
  [/פייק/,{p:'pike',eq:null}],[/קימה טורקית/,{p:'getup',eq:'kb'}],[/אינצ׳וורם/,{p:'inchworm',eq:null}],[/נגיעת כתף/,{p:'tap',eq:null}],
  [/שרוגס/,{p:'shrug',eq:'bar'}],[/Donkey Kick|על ארבע/,{p:'donkey',eq:null}],[/גוד מורנינג/,{p:'gm',eq:'bar'}],[/היפראקסטנשן/,{p:'hyper'}],
  [/פרפר במכונה/,{p:'pecdeck',eq:null}],[/פרפר הפוך במכונה/,{p:'revdeck',eq:null}],[/פרפר בדמבלים/,{p:'flyB',eq:'db'}],
@@ -2440,7 +2449,7 @@ function fAt(pt,k){
    מכל תנוחה נבנה שלד תלת-ממדי (X קדימה, Y למעלה, Z לצדדים) ועליו גוף, ציוד, מכשירים וספסלים.
    הזווית נבחרת אוטומטית לכל תרגיל: זו שבה רואים הכי הרבה תנועה והגפיים לא מסתירות זו את זו.
    מוצגות גם "רוחות" שקופות של תנוחת ההתחלה והסיום, וקו מסלול של המפרק שזז הכי הרבה */
-const F3W={pullup:26,pulldown:26,hangleg:24,bench:22,skull:9,pullover:9,ohp:20,squatBar:22,pushup:20,pushupKnee:20,pushupIncline:20,dip:17,benchdip:15,row:16,hinge:15,clean:15,front:14,curl:15,ohext:7,slam:9,burpee:20,swing:6,goblet:7,cablerow:8,facepull:16,press:4,ropes:12,sled:14,plank:12,mountain:20,rollout:9,legswing:15,legraise:16,crunch:10,bicycle:10,bridge:16,thrust:20,catcow:14,birddog:14,superman:16,deadbug:14,kneelcrunch:7,donkey:14,invrow:20,ski:14,jrope:20,preacher:13,roll:9,shrug:17,hyper:8};
+const F3W={pushupD:5,pullup:26,pulldown:26,hangleg:24,bench:22,skull:9,pullover:9,ohp:20,squatBar:22,pushup:20,pushupKnee:20,pushupIncline:20,dip:17,benchdip:15,row:16,hinge:15,clean:15,front:14,curl:15,ohext:7,slam:9,burpee:20,swing:6,goblet:7,cablerow:8,facepull:16,press:4,ropes:12,sled:14,plank:12,mountain:20,rollout:9,legswing:15,legraise:16,crunch:10,bicycle:10,bridge:16,thrust:20,catcow:14,birddog:14,superman:16,deadbug:14,kneelcrunch:7,donkey:14,invrow:20,ski:14,jrope:20,preacher:13,roll:9,shrug:17,hyper:8};
 const F3S={deadlift:11,squat:15,squatBar:16,goblet:16,hinge:11,swing:15,clean:12,slam:13,bridge:11,thrust:12,ohp:11,wallsit:12,legpress:13,calf:9,boxjump:13};
 const F3F={upright:9,hipcircle:9,twist:12,abduct:5};
 const F3V=(p,z)=>[p[0]-100,179-p[1],z];
@@ -2545,6 +2554,7 @@ function f3Gear(pt,sk,sp,k,o){
     C(q(-6),q(6),1.8,'q',1);C(q(-9),q(-6),5,'p',1);C(q(6),q(9),5,'p',1);
   });
   else if(eq==='kb'){const c=Math.hypot(...v3s(hands[0],hands[1]))<20?hm:hands[0];Sp(v3a(c,[0,-9,0]),7.5,'p');C(v3a(c,v3m(lat,-3.5)),v3a(c,v3m(lat,3.5)),1.5,'q',1)}
+  else if(eq==='fw')hands.forEach(h=>{const ax=front?[1,0,0]:lat,q=s=>v3a(h,v3m(ax,s));C(q(-8),q(8),2,'q',1);C(q(-11),q(-8),8.5,'p',1);C(q(8),q(11),8.5,'p',1)});
   else if(eq==='ball')Sp(v3a(hm,v3m(sk.fr,3)),10,'p');
   else if(eq==='handle')hands.forEach(h=>Sp(h,2.6,'q'));
   else if(eq==='cbar'){const d=v3n(v3s(hands[0],hands[1]));C(v3a(hands[0],v3m(d,5)),v3a(hands[1],v3m(d,-5)),1.6,'q',1)}
@@ -2563,7 +2573,8 @@ function f3Gear(pt,sk,sp,k,o){
     if(t==='mat')front?X([-40,0,-50],[40,1.6,50],'t',-2e3):X([-78,0,-24],[82,1.6,24],'t',-2e3);
     if(t==='bars')[-1,1].forEach(z=>{C([-16,63,z*20],[24,63,z*20],1.8,'q',1);C([-12,0,z*20],[-12,63,z*20],1.6,'p');C([20,0,z*20],[20,63,z*20],1.6,'p')});
     if(t==='pullbar'){const x=P.hd[0]-100;C([x,155,-44],[x,155,44],1.8,'q',1);[-1,1].forEach(z=>C([x,0,z*44],[x,155,z*44],2.2,'p'))}
-    if(t==='rail'){X([-52,10,-6],[78,15,6],'p');C([76,29,-5],[76,29,5],12,'p')}
+    if(t==='rail'){X([-52,10,-6],[78,15,6],'p');C([76,24,-8],[76,24,8],17,'p');o.push({t:'r',c:[76,24,-9],r:18,col:'q'});o.push({t:'r',c:[76,24,9],r:18,col:'q'});C([76,15,0],[76,60,0],1.6,'p');X([68,56,-7],[84,68,7],'q');
+      X([-8,15,-12],[6,20,12],'q');C(hm,[76,24,0],.5,'q')}
     if(t==='bike'){
       [[-30,19],[48,19]].forEach(([x,yy])=>o.push({t:'r',c:[x,yy,0],r:16,col:'p'}));
       const f=[[70,160],[88,118],[134,104],[88,118],[116,160],[148,160],[116,160],[134,104]].map(p=>F3V(p,0));
@@ -2630,7 +2641,7 @@ function f3P(cm,p){
   return [100+xr*f*cm.k,cm.cy-y2*f*cm.k,d,f];
 }
 /* בחירת זווית: לכל צירוף של סיבוב והטיה מודדים כמה התנועה נראית על המסך ועד כמה גפיים חופפות. נשמר לכל תרגיל */
-const F3BEST=new Map();
+const F3BEST=new Map([["הליכת איכר (Farmer's Walk)",{yaw:55,pitch:12,sc:0}],['חתירה במכונה',{yaw:-20,pitch:16,sc:0}]]);
 const F3J=sk=>[sk.hn[0],sk.hn[1],sk.el[0],sk.el[1],sk.kn[0],sk.kn[1],sk.an[0],sk.an[1],sk.H,sk.S,sk.head];
 function f3Best(e){
   if(F3BEST.has(e.name))return F3BEST.get(e.name);
@@ -2723,7 +2734,7 @@ function f3Draw2D(cv,e,k,yaw,pitch){
   }
   // מסלול התנועה: המפרק שזז הכי הרבה (ובן הזוג שלו), עם חצים בשני הקצוות
   if(F3DET&&!pt.hold)f3Trail(ctx,pt,sp,k,pj,pal);
-  if(pt.v!=='f')f3Cue(ctx,sp,sk,pj);
+  if(F3DET&&pt.v!=='f')f3Cue(ctx,sp,sk,pj);
   if(F3DET&&r.width>=170)f3Labels(ctx,sp,sk,pj);
 }
 /* ===== תלת-ממד אמיתי (three.js): תאורת סטודיו, צללים והשתקפויות. בלי WebGL חוזרים לציור הדו-ממדי ===== */
@@ -2736,20 +2747,20 @@ function f3Init(){
     if(typeof THREE==='undefined')return null;
     const T=THREE,cvs=document.createElement('canvas'),rd=new T.WebGLRenderer({canvas:cvs,antialias:true,alpha:false});
     cvs.addEventListener('webglcontextlost',ev=>ev.preventDefault());
-    rd.setPixelRatio(1);rd.outputEncoding=T.sRGBEncoding;rd.toneMapping=T.ACESFilmicToneMapping;rd.toneMappingExposure=.95;rd.setClearColor(0x061641);
+    rd.setPixelRatio(1);rd.outputEncoding=T.sRGBEncoding;rd.toneMapping=T.ACESFilmicToneMapping;rd.toneMappingExposure=.95;rd.setClearColor(0x15171b);
     rd.shadowMap.enabled=true;rd.shadowMap.type=T.PCFSoftShadowMap;
     const sc=new T.Scene(),cam=new T.PerspectiveCamera(20,200/186,100,3000);
     /* סביבת השתקפויות: כיפה כחולה ושלושה סופטבוקסים, כדי שהמניקן והמתכת יברקו כמו בצילום סטודיו */
     const envS=new T.Scene();
-    envS.add(new T.Mesh(new T.SphereGeometry(60,32,16),new T.MeshBasicMaterial({side:T.BackSide,map:f3Tex(4,256,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#c4d8ff');gr.addColorStop(.5,'#3f6fd8');gr.addColorStop(1,'#0a1a4a');g.fillStyle=gr;g.fillRect(0,0,w,h)})})));
+    envS.add(new T.Mesh(new T.SphereGeometry(60,32,16),new T.MeshBasicMaterial({side:T.BackSide,map:f3Tex(4,256,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#f1f3f7');gr.addColorStop(.5,'#8d929d');gr.addColorStop(1,'#16181c');g.fillStyle=gr;g.fillRect(0,0,w,h)})})));
     [[0,40,45,44,24],[-52,22,-8,12,38],[52,26,-8,12,32]].forEach(([x,y,z,w,h])=>{const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({color:new T.Color(5,5,5.3),side:T.DoubleSide}));m.position.set(x,y,z);m.lookAt(0,0,0);envS.add(m)});
     sc.environment=new T.PMREMGenerator(rd).fromScene(envS,.02).texture;
     /* חדר: קיר כחול מעוגל, רצפה מבריקה, כתם אור, וציוד חדר כושר כהה סביב */
-    const wall=new T.Mesh(new T.CylinderGeometry(430,430,330,64,1,true),new T.MeshBasicMaterial({side:T.BackSide,map:f3Tex(8,512,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#2a60cc');gr.addColorStop(.5,'#18409a');gr.addColorStop(1,'#071640');g.fillStyle=gr;g.fillRect(0,0,w,h)})}));wall.position.y=150;sc.add(wall);
-    const floor=new T.Mesh(new T.CircleGeometry(1600,64),new T.MeshBasicMaterial({color:0x05143c}));floor.rotation.x=-Math.PI/2;sc.add(floor);
+    const wall=new T.Mesh(new T.CylinderGeometry(430,430,330,64,1,true),new T.MeshBasicMaterial({side:T.BackSide,map:f3Tex(8,512,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#4a4e57');gr.addColorStop(.5,'#2c2f35');gr.addColorStop(1,'#141518');g.fillStyle=gr;g.fillRect(0,0,w,h)})}));wall.position.y=150;sc.add(wall);
+    const floor=new T.Mesh(new T.CircleGeometry(1600,64),new T.MeshBasicMaterial({color:0x121316}));floor.rotation.x=-Math.PI/2;sc.add(floor);
     const shd=new T.Mesh(new T.CircleGeometry(600,48),new T.ShadowMaterial({opacity:.55}));shd.rotation.x=-Math.PI/2;shd.position.y=.15;shd.receiveShadow=true;sc.add(shd);
-    const pool=new T.Mesh(new T.PlaneGeometry(300,300),new T.MeshBasicMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,map:f3Tex(128,128,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);gr.addColorStop(0,'rgba(90,135,255,.34)');gr.addColorStop(.55,'rgba(50,90,210,.1)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,w,h)})}));pool.rotation.x=-Math.PI/2;pool.position.y=.3;sc.add(pool);
-    const dark=new T.MeshStandardMaterial({color:0x0a1738,roughness:.6,metalness:.3,envMapIntensity:.5}),prop=(g,x,y,z,ry)=>{const m=new T.Mesh(g,dark);m.position.set(x,y,z);m.rotation.y=ry||0;sc.add(m);return m};
+    const pool=new T.Mesh(new T.PlaneGeometry(300,300),new T.MeshBasicMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,map:f3Tex(128,128,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);gr.addColorStop(0,'rgba(215,220,230,.30)');gr.addColorStop(.55,'rgba(150,158,172,.09)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,w,h)})}));pool.rotation.x=-Math.PI/2;pool.position.y=.3;sc.add(pool);
+    const dark=new T.MeshStandardMaterial({color:0x2a2d33,roughness:.5,metalness:.5,envMapIntensity:.6}),prop=(g,x,y,z,ry)=>{const m=new T.Mesh(g,dark);m.position.set(x,y,z);m.rotation.y=ry||0;sc.add(m);return m};
     const bx=(w,h,d)=>new T.BoxGeometry(w,h,d),props=[];
     [[-190,-330,.3],[120,-350,-.1],[340,-120,-1.5],[-330,-140,1.4],[-60,330,3.1],[260,250,-2.3]].forEach(([x,z,ry],i)=>{
       const gp=new T.Group();gp.position.set(x,0,z);gp.rotation.y=ry;sc.add(gp);props.push(gp);
@@ -2757,20 +2768,20 @@ function f3Init(){
       if(i%2===0){add(bx(70,7,26),0,42,0);[-28,28].forEach(l=>add(bx(5,42,22),l,21,0));add(bx(8,40,24),-40,64,0)}
       else{add(bx(90,5,34),0,70,0);add(bx(90,5,34),0,36,0);[-44,44].forEach(l=>add(bx(5,72,34),l,36,0));for(let j=0;j<6;j++){const d=new T.Mesh(new T.CylinderGeometry(7,7,14,16),dark);d.rotation.z=Math.PI/2;d.position.set(-34+j*13.6,80,0);gp.add(d)}}
     });
-    sc.add(new T.HemisphereLight(0x9db8ff,0x0a1440,.5));
-    const key=new T.DirectionalLight(0xfff1e0,1.5),rim=new T.DirectionalLight(0x6a9cff,1.6),fill=new T.DirectionalLight(0xbcd0ff,.55);
+    sc.add(new T.HemisphereLight(0xd5d9e2,0x14161a,.55));
+    const key=new T.DirectionalLight(0xfff1e0,1.5),rim=new T.DirectionalLight(0xb9c4ff,1.4),fill=new T.DirectionalLight(0xe0e4ee,.5);
     key.castShadow=true;key.shadow.mapSize.set(1024,1024);key.shadow.bias=-.0006;key.shadow.normalBias=.6;
     Object.assign(key.shadow.camera,{left:-170,right:170,top:170,bottom:-170,near:10,far:900});key.shadow.camera.updateProjectionMatrix();
     sc.add(key,key.target,rim,rim.target,fill,fill.target);
     const P=o=>new T.MeshPhysicalMaterial(o),mats={
       b:P({color:0xf3f6fd,roughness:.22,clearcoat:1,clearcoatRoughness:.08,envMapIntensity:1.15}),
-      m:P({color:0xb8121e,roughness:.3,clearcoat:.7,clearcoatRoughness:.15,emissive:0x6a0610,emissiveIntensity:.9,envMapIntensity:.7}),
+      m:P({color:0xff6a2a,roughness:.35,clearcoat:.7,clearcoatRoughness:.15,emissive:0xff4a12,emissiveIntensity:1.5,envMapIntensity:.7}),
       g:P({color:0xbcd0ff,transparent:true,opacity:.13,depthWrite:false,roughness:.5}),
       p:P({color:0x2b3243,roughness:.48,metalness:.4,envMapIntensity:.9}),
       q:P({color:0xd6dce8,roughness:.2,metalness:1,envMapIntensity:1.2}),
-      t:P({color:0x1b3f9c,roughness:.85,envMapIntensity:.3}),
+      t:P({color:0x2b2e35,roughness:.85,envMapIntensity:.3}),
       band:P({color:0x22c55e,roughness:.55}),
-      k:P({color:0x1b2c6b,roughness:.5,clearcoat:.3}),
+      k:P({color:0x1a1b20,roughness:.5,clearcoat:.3}),
       y:P({color:0xfacc15,roughness:.4}),
       v:P({color:0x050912,roughness:.08,metalness:.3,clearcoat:1,envMapIntensity:1.4})};
     mats.h=mats.b;
@@ -2794,7 +2805,7 @@ function f3Init(){
       /* שכבת שרירים: משקלי העצמות בכל קדקוד קובעים אילו אזורים מוארים באדום (חזה, גב, ירך וכו') */
       const bms=[];root.traverse(o=>{if(o.isSkinnedMesh)bms.push(o)});bms.sort((a,b)=>b.geometry.attributes.position.count-a.geometry.attributes.position.count);
       const body=bms[0],bg=body.geometry,N=bg.attributes.position.count,bnm=body.skeleton.bones.map(b=>b.name),si=bg.attributes.skinIndex,sw=bg.attributes.skinWeight,nm=bg.attributes.normal,ps=bg.attributes.position;
-      if(body.material&&body.material.color)body.material.color.multiplyScalar(.86);
+      root.traverse(o=>{if(o.isMesh&&o.material){const mt=o.material;mt.map=null;if(mt.color)mt.color.set(0xe3e6ec);mt.roughness=.34;mt.metalness=0;if(mt.normalMap)mt.normalMap=null;mt.envMapIntensity=1.0;mt.needsUpdate=true}});
       const grpOf={};bnm.forEach((n,i)=>{grpOf[i]=/^thigh_/.test(n)?'th':/^calf_|^foot_|^ball_/.test(n)?'ca':/^upperarm_/.test(n)?'ua':/^lowerarm_|^hand_/.test(n)?'fa':n==='spine_01'?'s1':/^spine_0[23]$/.test(n)?'s23':n==='pelvis'?'pe':/^clavicle_/.test(n)?'cl':''});
       const W={th:0,ca:0,ua:0,fa:0,s1:0,s23:0,pe:0,cl:0,cap:0,nf:0,nb:0,ty:0},A={};for(const q in W)A[q]=new Float32Array(N);
       const cmp=(a,i,j)=>j<2?(j?a.getY(i):a.getX(i)):(j>2?a.getW(i):a.getZ(i));
@@ -2808,7 +2819,7 @@ function f3Init(){
       R.A=A;R.N=N;
       const og=new T.BufferGeometry();['position','normal','skinIndex','skinWeight'].forEach(a=>og.setAttribute(a,bg.attributes[a]));if(bg.index)og.setIndex(bg.index);
       R.col=new T.BufferAttribute(new Float32Array(N*4).fill(1),4);og.setAttribute('color',R.col);
-      const om=new T.MeshStandardMaterial({color:0xd4141f,roughness:.45,emissive:0x7a0610,emissiveIntensity:.9,vertexColors:true,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2,envMapIntensity:.6});
+      const om=new T.MeshStandardMaterial({color:0xff6a2a,roughness:.4,emissive:0xff4a12,emissiveIntensity:1.7,vertexColors:true,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2,envMapIntensity:.6});
       const ov=new T.SkinnedMesh(og,om);ov.bindMode=body.bindMode;ov.bind(body.skeleton,body.bindMatrix);ov.frustumCulled=false;ov.renderOrder=2;body.parent.add(ov);
       R.mk=null;
       R.ready=true;
@@ -2832,7 +2843,7 @@ function f3Init(){
         if(h('core'))a=mx(a,(A.s1[i]+A.pe[i]*.5)*A.nf[i]);
         if(h('shoulder'))a=mx(a,mx(A.cap[i],A.cl[i]*.7));
         if(h('glutes'))a=mx(a,A.pe[i]*A.nb[i]+A.th[i]*A.nb[i]*A.ty[i]);
-        c[i*4+3]=al[i]=Math.min(1,a)*.85;
+        c[i*4+3]=al[i]=Math.min(1,a)*.92;
       }
       R.col.needsUpdate=true;
     };
@@ -2934,7 +2945,7 @@ function f3Init(){
       const pj=q=>{vq.set(q[0],q[1],q[2]).applyMatrix4(cam.matrixWorldInverse);const z=vq.z;vq.applyMatrix4(cam.projectionMatrix);return [((vq.x+1)/2*W-offx)/sc2,((1-vq.y)/2*Hh-offy)/sc2,z,1]};
       ctx.setTransform(sc2,0,0,sc2,offx,offy);
       if(F3DET&&!pt.hold)f3Trail(ctx,pt,spc,k,pj,pal);
-      if(pt.v!=='f')f3Cue(ctx,spc,skl,pj);
+      if(F3DET&&pt.v!=='f')f3Cue(ctx,spc,skl,pj);
       if(F3DET&&r.width>=170)f3Labels(ctx,spc,skl,pj);
     };
     F3G={draw,REAL};return F3G;
@@ -3022,17 +3033,33 @@ function figPhase(t,a,b,u,hold){
 function figSVG(e,sync,cls){
   return `<canvas class="fig ${cls||''}" width="400" height="372" data-x="${e.id}"${sync?' data-sync="1"':''} role="img" aria-label="הדמיה בתלת-ממד: ${esc(e.name)}"></canvas>`;
 }
+/* תרשים שרירים (חזית וגב) עם האזורים העובדים בכתום זוהר, ועיגולי חזרות שמתמלאים עם כל חזרה בהדמיה */
+function musDiagram(mus){
+  const M=new Set(mus||[]),on=k=>M.has(k),f=k=>on(k)?'#ff6a2a':'#b9bfcc',gl=k=>on(k)?' filter="url(#mglow)"':'';
+  const E=(k,cx,cy,rx,ry)=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${f(k)}"${gl(k)}/>`;
+  const fr=[E('shoulder',17,22,6,5),E('shoulder',43,22,6,5),E('chest',25,29,7,6),E('chest',35,29,7,6),E('bi',11,37,3.6,9),E('bi',49,37,3.6,9),E('fore',9,53,3,9),E('fore',51,53,3,9),`<rect x="23" y="37" width="14" height="20" rx="5" fill="${f('core')}"${gl('core')}/>`,E('quads',25,76,6,15),E('quads',35,76,6,15),E('calves',25,100,4,10),E('calves',35,100,4,10)];
+  const bk=[E('shoulder',77,22,6,5),E('shoulder',103,22,6,5),`<path d="M82 21 L98 21 L95 46 L85 46 Z" fill="${f('back')}"${gl('back')}/>`,E('tri',71,37,3.6,9),E('tri',109,37,3.6,9),E('glutes',85,58,6,6),E('glutes',95,58,6,6),E('hams',85,77,5.5,14),E('hams',95,77,5.5,14),E('calves',85,100,4,10),E('calves',95,100,4,10)];
+  const hd=cx=>`<circle cx="${cx}" cy="9" r="6" fill="#b9bfcc"/>`;
+  return `<svg viewBox="0 0 120 112" width="96" height="90" aria-hidden="true"><defs><filter id="mglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>${hd(30)}${hd(90)}${fr.join('')}${bk.join('')}</svg>`;
+}
+const EXGIF={"tq0io9m":"EIeI8Vf","fv2dien":"3TZduzM","p6xycxm":"GrO65fd","lk2dhyx":"SpYC0Kp","uyhlqfa":"DOoWcnA","r8zi3g7":"9WTm7dq","br10edn":"yz9nUhF","0582f8h":"0CXGHya","fvojf61":"I4hDWkc","1wgkny7":"B1EVP9F","3aam9zn":"soIB2rj","26hpc6v":"9XjtHvS","s5s203h":"lBDjFxJ","p0hshdw":"dVeWXf2","2s8j3bc":"LEprlgG","f38n5np":"A3P4O0R","pcg8j9v":"eZyBC3j","h1iby24":"BJ0Hz5L","dcopkgo":"ila4NZS","y6scy4v":"zhMwOwE","9wzfndg":"dG7tG5y","zerbroy":"ZfyAGhK","lwcbfrp":"1YUWDNZ","okiicab":"kTbSH9h","xfrhg92":"znQUdHY","xfu2n0b":"eOrFCnx","asx10rs":"DsgkuIt","8c26oam":"3eGE2JC","kv8sd69":"v1qBec9","fu12c0p":"1oE78pm","myyqgov":"25GPyDY","m4oqt7t":"NbVPDMW","ncfvl6g":"2NpxjC1","co4ux8d":"qOgPVf6","h8bjp7r":"G08RZcQ","7ajonwi":"3ZflifB","e559olk":"kont8Ut","n8mtj5b":"J6Dx1Mu","hqw91yu":"X6C6i5Y","uf9j0mz":"h8LFzo9","5wtzaid":"6kSxYnw","dnm6g7f":"RrLske5","16f2g0i":"iYzB0Cz","vuzm5at":"zG0zs85","wekt1kz":"yn8yg1r","p8dmlx0":"jFtipLl","78p67km":"qx4fgX7","gwxy5ey":"5VCj6iH","3cvbxce":"RRWFUcw","0gvi3hj":"IZVHb27","rxtqy0r":"o6LqKKP","60tj4y7":"aXtJhlg","wsxsaed":"8ozhUIZ","tssamjf":"LIlE5Tn","2r1osc4":"qKBpF7I","r5xnntj":"HEJ6DIX","gvpdptz":"XlZ4lAC","cjisygg":"qKBpF7I","yvm3sk4":"u0cNiij","xg2kwsj":"TFqbd8t","n39el5q":"CUmLRTA","06r3krh":"I3tsCnC","eqjojae":"XVDdcoj","nc7nr4i":"iny3m5y","oy0d0em":"yRpV5TC","z90uzno":"RJgzwny","lv5zgsp":"PCUYOMs","bv7pb2j":"e1e76I2","1dxmr30":"dK9394r","x0w99f7":"HtfCpfi","j497u52":"UHJlbu3","kzdqb4o":"dK9394r","0si9vns":"qPEzJjA","p9e6r9x":"SGY8Zui","dwd4sbh":"hVzPY5j","4l3khh4":"4OaumBr","k5o5xf3":"IZVHb27","dc7b87p":"TV87DNB","sydr9kw":"2jl9K55","493xexg":"v3xmPAR","wzvk8pj":"7I6LNUG","r3qspe7":"aaXr7ld","8b82uc5":"67n3r98","rhwnwva":"myfUsKf","klasd3g":"2Qh2J1e","6jwst89":"my33uHU","6q7x6cy":"17lJ1kr","mtv67ij":"Zg3XY7P","rqdf00d":"bOOdeyc","hvwlhum":"oHsrypV","gp2nzyt":"CHpahtl","5mzai9k":"OPqShYN","gse51yj":"NAgVB3t","mubb8e2":"v3vLFW0","guqxyez":"rjiM4L3","dk0bc2i":"j9Q5crt","6n13hb9":"SP3hUez","s49bn6z":"oHg8eop","ft5z3dj":"Ha7SZ3y","tijc44d":"WhuFnR7"};
+/* סרטוני תרגיל מ-ExerciseDB: סטרימינג בלבד מהשרת שלהם, בלי הורדה ושמירה. אם הטעינה נכשלת חוזרים לדמות התלת-ממדית שלנו */
+let GIFON=true;try{GIFON=localStorage.getItem('gt_gif')!=='0'}catch(e){}
+function figGifTg(){GIFON=!GIFON;try{localStorage.setItem('gt_gif',GIFON?'1':'0')}catch(e){}
+  document.querySelectorAll('.figcard').forEach(c=>{const g=c.querySelector('.figg'),d=c.querySelector('.fig3');if(!g||g.dataset.err)return;g.style.display=GIFON?'block':'none';d.style.display=GIFON?'none':'block';const b=c.querySelector('.figgb');if(b)b.textContent=GIFON?'🧍 תלת-ממד':'🎬 סרטון'});if(!GIFON)figKick()}
+function figGifErr(im){const c=im.closest('.figcard');if(!c)return;const g=c.querySelector('.figg'),d=c.querySelector('.fig3'),b=c.querySelector('.figgb');if(g){g.dataset.err='1';g.style.display='none'}if(d)d.style.display='block';if(b)b.style.display='none';figKick()}
 /* כרטיס הדמיה בסגנון אינפוגרפיקה: שם, דמות מונפשת, שלב התנועה, ושורת סטים/חזרות/מנוחה */
 function figCard(e){
   const it=S.plans.flatMap(p=>p.items).find(i=>i.ex===e.id&&i.ph!=='w'),g=goalCfg(),t=e.type;
   const sets=(it&&it.sets)||3,rest=(it&&it.rest)||S.settings.rest||60;
   const vol=t==='t'?`${(it&&it.sec)||30} שניות`:t==='s'?`${(it&&it.reps)||(g.min+'–'+g.max)} חזרות`:`${(it&&it.min)||10} דקות`;
   const muscles=(INFO[e.name]&&INFO[e.name].m)||'',hold=(FIGP[figSpec(e).p]||{}).hold;
-  return `<div class="figcard"><div class="figt">${fmtName(e.name)}</div>${figSVG(e)}<div class="figph">⬇ למטה</div>
-  <div class="figv"><button class="on" onclick="figView(this,null)">⭐ זווית מומלצת</button><button onclick="figView(this,0)">צד</button><button onclick="figView(this,90)">חזית</button><button onclick="figView(this,-1)">🔄 360°</button><button class="figd${F3DET?' on':''}" onclick="figDet(this)">ℹ️ פרטים</button></div>
+  const mus=figSpec(e).mus;
+  return `<div class="figcard"><div class="figt">${fmtName(e.name)}</div>${mus&&mus.length&&t!=='c'?`<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:4px 0">${musDiagram(mus)}<div class="figrep" style="display:flex;gap:7px" aria-hidden="true">${[0,1,2,3,4].map(()=>'<span style="width:20px;height:20px;border-radius:50%;border:2px solid #8b92a3;display:inline-block;transition:background .25s,border-color .25s"></span>').join('')}</div></div>`:''}${EXGIF[e.id]?`<div class="figg" style="margin:4px 0;display:${GIFON?'block':'none'}"><img src="https://static.exercisedb.dev/media/${EXGIF[e.id]}.gif" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="figGifErr(this)" style="width:100%;border-radius:14px;background:#fff;display:block"><div style="font-size:10px;opacity:.55;text-align:center;margin-top:2px">סרטון: ExerciseDB</div></div>`:''}<div class="fig3" style="display:${EXGIF[e.id]&&GIFON?'none':'block'}">${figSVG(e)}</div><div class="figph">⬇ למטה</div>
+  <div class="figv"><button class="on" onclick="figView(this,null)">⭐ זווית מומלצת</button><button onclick="figView(this,0)">צד</button><button onclick="figView(this,90)">חזית</button><button onclick="figView(this,-1)">🔄 360°</button><button class="figd${F3DET?' on':''}" onclick="figDet(this)">ℹ️ פרטים</button>${EXGIF[e.id]?`<button class="figgb" onclick="figGifTg()">${GIFON?'🧍 תלת-ממד':'🎬 סרטון'}</button>`:''}</div>
   <div class="fighint">אפשר לגרור כדי לסובב · «פרטים» מציג מסלול תנועה, צללית התחלה/סיום ושמות שרירים</div>
   ${muscles?`<div class="figm"><span class="dot"></span> שרירים עובדים: ${esc(muscles)}</div>`:''}
-  <div class="figft"><span><b>${t==='c'||t==='w'?1:sets}</b> סטים</span><span><b>${vol}</b></span><span><b>${rest}</b>ש׳ מנוחה</span></div></div>`;
+  ${FIGCRED[figSpec(e).p]?'<div style="font-size:10px;opacity:.55;text-align:center;margin:2px 0">תנועה מבוססת על סרטון הדגמה של Prototyperspective (CC BY 3.0)</div>':''}<div class="figft"><span><b>${t==='c'||t==='w'?1:sets}</b> סטים</span><span><b>${vol}</b></span><span><b>${rest}</b>ש׳ מנוחה</span></div></div>`;
 }
 /* מצב מצלמה לכל canvas: זווית מומלצת עם תנודה קלה, גרירה ידנית, או סיבוב מלא */
 const F3ST=new WeakMap();
@@ -3062,7 +3089,10 @@ function figLoop(){
       const tg=st.best.yaw+8*Math.sin(now/1000*.5);let d=((tg-st.yaw)%360+540)%360-180;st.yaw+=d*.04;st.pitch+=(st.best.pitch-st.pitch)*.04;
     }
     f3Draw(cv,e,ph.k,st.yaw,st.pitch);
-    const lb=cv.parentElement&&cv.parentElement.querySelector('.figph');if(lb)lb.textContent=ph.lab;
+    const cd=cv.closest('.figcard')||cv.parentElement;
+    const lb=cd&&cd.querySelector('.figph');if(lb)lb.textContent=ph.lab;
+    const rp=cd&&cd.querySelector('.figrep');
+    if(rp){const cy=(cv.dataset.sync&&PL?(Date.now()-(PL.workStart||0))/1000:now/1000+idx*.7)/3,n=Math.floor(cy),fl=(n%5)+((cy-n)>.5?1:0);[...rp.children].forEach((d,i)=>{const on=i<fl;d.style.background=on?'#ff6a2a':'transparent';d.style.borderColor=on?'#ff6a2a':'#8b92a3'})}
   });
   figRAF=requestAnimationFrame(figLoop);
 }
