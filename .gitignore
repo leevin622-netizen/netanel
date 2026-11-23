@@ -1,0 +1,6 @@
+# Home folder is the repo root: ignore everything, allow only the site files.
+/*
+!/.gitignore
+!/.nojekyll
+!/index.html
+!/README.md
