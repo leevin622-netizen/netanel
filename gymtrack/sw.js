@@ -1,7 +1,7 @@
 /* Service worker: האפליקציה עובדת גם בלי אינטרנט.
    קבצי האפליקציה: קודם מהרשת (כדי לקבל עדכונים), ואם אין רשת מהמטמון.
    בקשות לשרתים אחרים (Google) לא נשמרות במטמון. */
-const CACHE = 'gymtrack-v4';
+const CACHE = 'gymtrack-v5';
 const SHELL = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
